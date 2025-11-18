@@ -26,7 +26,6 @@ type masterCommsServer struct {
 	metricChan chan *MetricsMessage
 	popChan    chan *common.Population
 	sched SchedulerComms
-	// TODO: include something for population
 }
 
 type SchedulerComms interface {
@@ -76,7 +75,6 @@ func mcsStreamHandlerThread(
 				log.Info().Caller().Msgf("workerID %s received metrics", workerID)
 				metricChan <- result.GetMetrics()
 			} else if result.GetPopulation() != nil {
-				// TODO (DONE) : Send population to appropriate container
 				log.Info().Caller().Msgf("workerID %s received population", workerID)
 				popChan <- result.GetPopulation()
 			} else if result.GetWorkerID() != nil {
@@ -97,7 +95,7 @@ func mcsStreamHandlerThread(
 	}
 }
 
-func initMasterCommsServer(mcs *masterCommsServer, metricChan chan *MetricsMessage /* TODO: popln */) (err error) {
+func initMasterCommsServer(mcs *masterCommsServer, metricChan chan *MetricsMessage) (err error) {
 	mcs.channs = make(map[string]chan *MasterMessage)
 	mcs.metricChan = metricChan
 	return nil
@@ -121,9 +119,8 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 	masterSendChan := make(chan *MasterMessage)
 
 	mcs.chans_mut.Lock()
-	defer mcs.chans_mut.Unlock()
-
 	mcs.channs[workerID] = masterSendChan
+	mcs.chans_mut.Unlock()
 
 	mcs.sched.AddWorker(workerID)
 
