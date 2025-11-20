@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
+	"os"
 	"sync"
 	"volpe-framework/comms/common"
 
@@ -21,6 +23,7 @@ type MasterComms struct {
 }
 
 type masterCommsServer struct {
+	UnimplementedVolpeMasterServer
 	chans_mut  sync.RWMutex
 	channs     map[string]chan *MasterMessage
 	metricChan chan *MetricsMessage
@@ -127,6 +130,48 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 	mcsStreamHandlerThread(workerID, stream, masterSendChan, mcs.metricChan, mcs.popChan)
 
 	mcs.sched.RemoveWorker(workerID)
+	return nil
+}
+
+func (mcs *masterCommsServer) GetImage(req *ImageRequest, stream grpc.ServerStreamingServer[ImageResponse]) error {
+	problemID := req.GetProblemID()
+	// TODO: image path config
+	fname := problemID + ".tar"
+	file, err := os.Open(fname)
+	if err != nil {
+		log.Error().Caller().Msgf(err.Error())
+		return nil
+	}
+
+	finfo, _ := os.Stat(fname)
+	fileSize := int(finfo.Size())
+	done := 0
+
+	buf := make([]byte, 512)
+
+	stream.Send(&ImageResponse{
+		Response: &ImageResponse_Details{
+			Details: &ImageDetails{
+				ProblemID: problemID,
+				ImageSizeBytes: int32(fileSize),
+			},
+		},
+	})
+
+	for done < fileSize {
+		bytes, err := file.Read(buf)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		stream.Send(&ImageResponse{
+			Response: &ImageResponse_Data{
+				&ImageChunk{
+					Data: buf,
+				},
+			},
+		})
+		done += bytes
+	}
 	return nil
 }
 

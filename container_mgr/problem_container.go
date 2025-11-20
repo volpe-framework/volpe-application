@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"sync"
 	comms "volpe-framework/comms/common"
 	ccomms "volpe-framework/comms/container"
 	vcomms "volpe-framework/comms/volpe"
@@ -19,6 +20,8 @@ type ProblemContainer struct {
 	//	containerPort uint16
 	hostPort    uint16
 	commsClient ccomms.VolpeContainerClient
+	resultChannels map[chan *comms.Population]bool
+	rcMut sync.Mutex
 }
 
 func genContainerName(problemID string) string {
@@ -53,6 +56,20 @@ func (pc *ProblemContainer) GetContainerName() string {
 	return pc.containerName
 }
 
+func (pc *ProblemContainer) RegisterResultChannel(channel chan *comms.Population) {
+	pc.rcMut.Lock()
+	defer pc.rcMut.Unlock()
+
+	pc.resultChannels[channel] = true
+}
+
+func (pc *ProblemContainer) DeRegisterResultChannel(channel chan *comms.Population) {
+	pc.rcMut.Lock()
+	defer pc.rcMut.Unlock()
+
+	delete(pc.resultChannels, channel)
+}
+
 func (pc *ProblemContainer) GetSubpopulation() (*comms.Population, error) {
 	pop, err := pc.commsClient.GetBestPopulation(context.Background(), &ccomms.PopulationSize{Size: -1})
 	if err != nil {
@@ -85,3 +102,4 @@ func (pc *ProblemContainer) HandleEvents(eventChannel chan *vcomms.AdjustPopulat
 		}
 	}
 }
+

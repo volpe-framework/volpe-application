@@ -10,4 +10,6 @@ type Scheduler interface {
 	AddWorker(name string)                        // add a new worker, update population
 	RemoveWorker(name string)                     // remove an existing worker, update population
 	UpdateMetrics(metrics *vcomms.MetricsMessage) // update the metrics and objective function
+	AddProblem(name string)
+	RemoveProblem(name string)
 }

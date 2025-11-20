@@ -422,6 +422,228 @@ func (x *ApplicationMetrics) GetMemUsage() float32 {
 	return 0
 }
 
+type ImageRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProblemID     string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImageRequest) Reset() {
+	*x = ImageRequest{}
+	mi := &file_volpe_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImageRequest) ProtoMessage() {}
+
+func (x *ImageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_volpe_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImageRequest.ProtoReflect.Descriptor instead.
+func (*ImageRequest) Descriptor() ([]byte, []int) {
+	return file_volpe_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ImageRequest) GetProblemID() string {
+	if x != nil {
+		return x.ProblemID
+	}
+	return ""
+}
+
+type ImageResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Response:
+	//
+	//	*ImageResponse_Details
+	//	*ImageResponse_Data
+	Response      isImageResponse_Response `protobuf_oneof:"response"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImageResponse) Reset() {
+	*x = ImageResponse{}
+	mi := &file_volpe_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImageResponse) ProtoMessage() {}
+
+func (x *ImageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_volpe_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImageResponse.ProtoReflect.Descriptor instead.
+func (*ImageResponse) Descriptor() ([]byte, []int) {
+	return file_volpe_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ImageResponse) GetResponse() isImageResponse_Response {
+	if x != nil {
+		return x.Response
+	}
+	return nil
+}
+
+func (x *ImageResponse) GetDetails() *ImageDetails {
+	if x != nil {
+		if x, ok := x.Response.(*ImageResponse_Details); ok {
+			return x.Details
+		}
+	}
+	return nil
+}
+
+func (x *ImageResponse) GetData() *ImageChunk {
+	if x != nil {
+		if x, ok := x.Response.(*ImageResponse_Data); ok {
+			return x.Data
+		}
+	}
+	return nil
+}
+
+type isImageResponse_Response interface {
+	isImageResponse_Response()
+}
+
+type ImageResponse_Details struct {
+	Details *ImageDetails `protobuf:"bytes,1,opt,name=details,proto3,oneof"`
+}
+
+type ImageResponse_Data struct {
+	Data *ImageChunk `protobuf:"bytes,2,opt,name=data,proto3,oneof"`
+}
+
+func (*ImageResponse_Details) isImageResponse_Response() {}
+
+func (*ImageResponse_Data) isImageResponse_Response() {}
+
+type ImageDetails struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ProblemID      string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
+	ImageSizeBytes int32                  `protobuf:"varint,2,opt,name=imageSizeBytes,proto3" json:"imageSizeBytes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ImageDetails) Reset() {
+	*x = ImageDetails{}
+	mi := &file_volpe_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImageDetails) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImageDetails) ProtoMessage() {}
+
+func (x *ImageDetails) ProtoReflect() protoreflect.Message {
+	mi := &file_volpe_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImageDetails.ProtoReflect.Descriptor instead.
+func (*ImageDetails) Descriptor() ([]byte, []int) {
+	return file_volpe_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ImageDetails) GetProblemID() string {
+	if x != nil {
+		return x.ProblemID
+	}
+	return ""
+}
+
+func (x *ImageDetails) GetImageSizeBytes() int32 {
+	if x != nil {
+		return x.ImageSizeBytes
+	}
+	return 0
+}
+
+type ImageChunk struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Data          []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImageChunk) Reset() {
+	*x = ImageChunk{}
+	mi := &file_volpe_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImageChunk) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImageChunk) ProtoMessage() {}
+
+func (x *ImageChunk) ProtoReflect() protoreflect.Message {
+	mi := &file_volpe_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImageChunk.ProtoReflect.Descriptor instead.
+func (*ImageChunk) Descriptor() ([]byte, []int) {
+	return file_volpe_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ImageChunk) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
 var File_volpe_proto protoreflect.FileDescriptor
 
 const file_volpe_proto_rawDesc = "" +
@@ -454,9 +676,23 @@ const file_volpe_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\x13.ApplicationMetricsR\x05value:\x028\x01\"J\n" +
 	"\x12ApplicationMetrics\x12\x18\n" +
 	"\acpuUtil\x18\x01 \x01(\x02R\acpuUtil\x12\x1a\n" +
-	"\bmemUsage\x18\x02 \x01(\x02R\bmemUsage2C\n" +
+	"\bmemUsage\x18\x02 \x01(\x02R\bmemUsage\",\n" +
+	"\fImageRequest\x12\x1c\n" +
+	"\tproblemID\x18\x01 \x01(\tR\tproblemID\"i\n" +
+	"\rImageResponse\x12)\n" +
+	"\adetails\x18\x01 \x01(\v2\r.ImageDetailsH\x00R\adetails\x12!\n" +
+	"\x04data\x18\x02 \x01(\v2\v.ImageChunkH\x00R\x04dataB\n" +
+	"\n" +
+	"\bresponse\"T\n" +
+	"\fImageDetails\x12\x1c\n" +
+	"\tproblemID\x18\x01 \x01(\tR\tproblemID\x12&\n" +
+	"\x0eimageSizeBytes\x18\x02 \x01(\x05R\x0eimageSizeBytes\" \n" +
+	"\n" +
+	"ImageChunk\x12\x12\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data2r\n" +
 	"\vVolpeMaster\x124\n" +
-	"\fStartStreams\x12\x0e.WorkerMessage\x1a\x0e.MasterMessage\"\x00(\x010\x01B\x0fZ\r./comms/volpeb\x06proto3"
+	"\fStartStreams\x12\x0e.WorkerMessage\x1a\x0e.MasterMessage\"\x00(\x010\x01\x12-\n" +
+	"\bGetImage\x12\r.ImageRequest\x1a\x0e.ImageResponse\"\x000\x01B\x0fZ\r./comms/volpeb\x06proto3"
 
 var (
 	file_volpe_proto_rawDescOnce sync.Once
@@ -470,7 +706,7 @@ func file_volpe_proto_rawDescGZIP() []byte {
 	return file_volpe_proto_rawDescData
 }
 
-var file_volpe_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_volpe_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_volpe_proto_goTypes = []any{
 	(*WorkerID)(nil),                // 0: WorkerID
 	(*MasterMessage)(nil),           // 1: MasterMessage
@@ -478,24 +714,32 @@ var file_volpe_proto_goTypes = []any{
 	(*WorkerMessage)(nil),           // 3: WorkerMessage
 	(*MetricsMessage)(nil),          // 4: MetricsMessage
 	(*ApplicationMetrics)(nil),      // 5: ApplicationMetrics
-	nil,                             // 6: MetricsMessage.ApplicationMetricsEntry
-	(*common.Population)(nil),       // 7: Population
+	(*ImageRequest)(nil),            // 6: ImageRequest
+	(*ImageResponse)(nil),           // 7: ImageResponse
+	(*ImageDetails)(nil),            // 8: ImageDetails
+	(*ImageChunk)(nil),              // 9: ImageChunk
+	nil,                             // 10: MetricsMessage.ApplicationMetricsEntry
+	(*common.Population)(nil),       // 11: Population
 }
 var file_volpe_proto_depIdxs = []int32{
-	2, // 0: MasterMessage.adjPop:type_name -> AdjustPopulationMessage
-	7, // 1: AdjustPopulationMessage.seed:type_name -> Population
-	4, // 2: WorkerMessage.metrics:type_name -> MetricsMessage
-	7, // 3: WorkerMessage.population:type_name -> Population
-	0, // 4: WorkerMessage.workerID:type_name -> WorkerID
-	6, // 5: MetricsMessage.applicationMetrics:type_name -> MetricsMessage.ApplicationMetricsEntry
-	5, // 6: MetricsMessage.ApplicationMetricsEntry.value:type_name -> ApplicationMetrics
-	3, // 7: VolpeMaster.StartStreams:input_type -> WorkerMessage
-	1, // 8: VolpeMaster.StartStreams:output_type -> MasterMessage
-	8, // [8:9] is the sub-list for method output_type
-	7, // [7:8] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	2,  // 0: MasterMessage.adjPop:type_name -> AdjustPopulationMessage
+	11, // 1: AdjustPopulationMessage.seed:type_name -> Population
+	4,  // 2: WorkerMessage.metrics:type_name -> MetricsMessage
+	11, // 3: WorkerMessage.population:type_name -> Population
+	0,  // 4: WorkerMessage.workerID:type_name -> WorkerID
+	10, // 5: MetricsMessage.applicationMetrics:type_name -> MetricsMessage.ApplicationMetricsEntry
+	8,  // 6: ImageResponse.details:type_name -> ImageDetails
+	9,  // 7: ImageResponse.data:type_name -> ImageChunk
+	5,  // 8: MetricsMessage.ApplicationMetricsEntry.value:type_name -> ApplicationMetrics
+	3,  // 9: VolpeMaster.StartStreams:input_type -> WorkerMessage
+	6,  // 10: VolpeMaster.GetImage:input_type -> ImageRequest
+	1,  // 11: VolpeMaster.StartStreams:output_type -> MasterMessage
+	7,  // 12: VolpeMaster.GetImage:output_type -> ImageResponse
+	11, // [11:13] is the sub-list for method output_type
+	9,  // [9:11] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_volpe_proto_init() }
@@ -511,13 +755,17 @@ func file_volpe_proto_init() {
 		(*WorkerMessage_Population)(nil),
 		(*WorkerMessage_WorkerID)(nil),
 	}
+	file_volpe_proto_msgTypes[7].OneofWrappers = []any{
+		(*ImageResponse_Details)(nil),
+		(*ImageResponse_Data)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_volpe_proto_rawDesc), len(file_volpe_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -5,9 +5,9 @@ import "common.proto";
 option go_package = "volpe-framework/comms/api";
 
 service VolpeAPI {
-  rpc RegisterImage(stream ImageChunk) returns (Result) {};
-  rpc RegisterProblem(RegisterProblemRequest) returns (Result) {};
-  rpc StartProblem(StartProblemRequest) returns (stream ProblemResult) {};
+ rpc RegisterProblem(stream RegisterProblemRequest) returns (Result) {};
+  rpc StartProblem(StartProblemRequest) returns (Result) {};
+  rpc StreamResults(StreamResultsRequest) returns (stream ProblemResult) {};
   rpc AbortProblem(AbortProblemRequest) returns (Result) {};
 }
 
@@ -17,9 +17,7 @@ message CreateImageRequest {
 }
 
 message ImageChunk {
-  optional string problemID  = 1;
-  bool done = 2;
-  bytes data = 3;
+  bytes data = 1;
 }
 
 message Result {
@@ -28,13 +26,23 @@ message Result {
 }
 
 message RegisterProblemRequest {
+  oneof data {
+    ProblemDetails details = 1;
+    ImageChunk image = 2;
+  }
+}
+
+message ProblemDetails {
   string problemID = 1;
   int32 imageSizeBytes = 2;
 }
 
 message StartProblemRequest {
   string problemID = 1;
-  float fitnessThreshold = 2;
+}
+
+message StreamResultsRequest {
+  string problemID = 1;
 }
 
 message ProblemResult {

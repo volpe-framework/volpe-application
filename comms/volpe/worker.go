@@ -2,6 +2,9 @@ package volpe
 
 import (
 	"context"
+	"errors"
+	"os"
+	"sync"
 	"volpe-framework/comms/common"
 
 	"github.com/rs/zerolog/log"
@@ -14,6 +17,8 @@ import (
 type WorkerComms struct {
 	client   VolpeMasterClient
 	stream   grpc.BidiStreamingClient[WorkerMessage, MasterMessage]
+	cancelFunc context.CancelFunc
+	cancelMutex sync.Mutex
 	workerID string
 	// TODO: include something for population
 }
@@ -30,7 +35,10 @@ func NewWorkerComms(endpoint string, workerID string) (*WorkerComms, error) {
 	}
 	wc.client = NewVolpeMasterClient(conn)
 
-	wc.stream, err = wc.client.StartStreams(context.Background())
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	wc.cancelFunc = cancelFunc
+
+	wc.stream, err = wc.client.StartStreams(ctx)
 	if err != nil {
 		log.Error().Caller().Msg(err.Error())
 		return nil, err
@@ -53,6 +61,12 @@ func NewWorkerComms(endpoint string, workerID string) (*WorkerComms, error) {
 	return wc, nil
 }
 
+func (wc *WorkerComms) CloseCommms() {
+	if wc.cancelFunc != nil {
+		wc.cancelFunc()
+	}
+}
+
 func (wc *WorkerComms) SendMetrics(metrics *MetricsMessage) error {
 	metrics.WorkerID = wc.workerID
 	workerMsg := WorkerMessage{Message: &WorkerMessage_Metrics{metrics}}
@@ -70,4 +84,59 @@ func (wc *WorkerComms) SendSubPopulation(population *common.Population) error {
 		log.Error().Caller().Msgf("sending subpop: %s", err.Error())
 	}
 	return err
+}
+
+func (wc *WorkerComms) GetImageFile(problemID string) (string, error) {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	stream, err := wc.client.GetImage(ctx, &ImageRequest{
+		ProblemID: problemID,
+	})
+	if err != nil {
+		log.Error().Caller().Msgf(err.Error())
+		return "", err
+	}
+
+	defer cancelFunc()
+
+	detailsMsg, err := stream.Recv()
+	if err != nil {
+		log.Error().Caller().Msgf(err.Error())
+		return "", err
+	}
+	details := detailsMsg.GetDetails()
+	if err != nil {
+		log.Error().Caller().Msgf("expected first msg details for pid %s", problemID)
+		return "", errors.New("expected details msg")
+	}
+
+	fileSizeBytes := details.GetImageSizeBytes()
+	fname := "./" + problemID + ".tar"
+	doneBytes := int32(0)
+
+	file, err := os.Create(fname)
+	if err != nil {
+		log.Error().Caller().Msgf("could not create file %s: %s", fname, err.Error())
+		return "", err
+	}
+	defer file.Close()
+
+	for doneBytes < fileSizeBytes {
+		recMsg, err := stream.Recv()
+		if err != nil {
+			log.Error().Caller().Msgf("PID %s: %s", problemID, err.Error())
+			return "", err
+		}
+		dataMsg := recMsg.GetData()
+		if dataMsg == nil {
+			log.Error().Caller().Msgf("PID %s: expected data msg", problemID)
+			return "", errors.New("expected data msg")
+		}
+		data := dataMsg.GetData()
+		file.Write(data)
+
+		doneBytes += int32(len(data))
+	}
+
+	return fname, nil
 }

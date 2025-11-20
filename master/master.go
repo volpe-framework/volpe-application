@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"time"
 	ccomms "volpe-framework/comms/common"
@@ -9,8 +10,12 @@ import (
 	cm "volpe-framework/container_mgr"
 	"volpe-framework/metrics"
 	"volpe-framework/scheduler"
+	vapi "volpe-framework/comms/api"
+
+	model "volpe-framework/master/model"
 
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -43,6 +48,23 @@ func main() {
 		panic(err)
 	}
 
+	problemStore, _ := model.NewProblemStore()
+
+	api, err := NewVolpeAPI(problemStore, sched, cman)
+	if err != nil {
+		panic(err)
+	}
+
+	serv := grpc.NewServer()
+	lis, err := net.Listen("tcp", "0.0.0.0:8000")
+	if err != nil {
+		panic(err)
+	}
+	log.Info().Caller().Msgf("master API listening on port %d", 8000)
+	vapi.RegisterVolpeAPIServer(serv, api)
+
+	go serv.Serve(lis)
+
 	go sendMetric(metricChan, sched)
 
 	go recvPopulation(cman, popChan)
@@ -57,7 +79,7 @@ func recvPopulation(cman *cm.ContainerManager, popChan chan *ccomms.Population) 
 		m, ok := <-popChan
 		if !ok {
 			log.Error().Caller().Msg("popChan closed")
-			return
+			break
 		}
 		cman.IncorporatePopulation(m)
 		log.Info().Caller().Msgf("received population for problem %s", m.GetProblemID())
@@ -109,6 +131,6 @@ func applySchedule(master *vcomms.MasterComms, cman *cm.ContainerManager, sched 
 				return
 			}
 		})
-		time.Sleep(2*time.Minute)
+		time.Sleep(30*time.Second)
 	}
 }

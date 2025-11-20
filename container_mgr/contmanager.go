@@ -56,6 +56,15 @@ func (cm *ContainerManager) AddProblem(problemID string, imagePath string) error
 	return nil
 }
 
+func (cm *ContainerManager) RemoveProblem(problemID string) error {
+	cm.pcMut.Lock()
+	defer cm.pcMut.Unlock()
+
+	delete(cm.problemContainers, problemID)
+
+	return nil
+}
+
 func (cm *ContainerManager) GetSubpopulations() ([]*common.Population, error) {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
@@ -130,8 +139,8 @@ func (cm *ContainerManager) handleEvent(event *volpe.AdjustPopulationMessage) {
 	defer cm.pcMut.Unlock()
 	pc, ok := cm.problemContainers[event.GetProblemID()]
 	if !ok {
-		log.Warn().Caller().Msgf("received msg for problem ID %s, but problem container does not exist, creation not handled yet", event.GetProblemID())
-		// TODO: add logic to create container
+		log.Error().Caller().Msgf("received msg for problem ID %s, but problem container does not exist, creation not handled yet", event.GetProblemID())
+		// TODO: add logic to create container on worker
 		return
 	}
 	popSize := &ccoms.PopulationSize{Size: event.Size}
@@ -145,4 +154,31 @@ func (cm *ContainerManager) handleEvent(event *volpe.AdjustPopulationMessage) {
 		log.Error().Caller().Msgf("pop seed for pid %s got error %s", event.GetProblemID(), err.Error())
 		return
 	}
+}
+
+func (cm *ContainerManager) RegisterResultListener(problemID string, channel chan *common.Population) error {
+	cm.pcMut.Lock()
+	defer cm.pcMut.Unlock()
+
+	pc, ok := cm.problemContainers[problemID]
+	if !ok {
+		log.Error().Caller().Msgf("unknown problemID %s", problemID)
+		return errors.New("Unknown problemID")
+	}
+	pc.RegisterResultChannel(channel)
+	return nil
+}
+
+func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan *common.Population) error {
+	cm.pcMut.Lock()
+	defer cm.pcMut.Unlock()
+
+	pc, ok := cm.problemContainers[problemID]
+	if !ok {
+		log.Error().Caller().Msgf("unknown problemID %s", problemID)
+		return errors.New("Unknown problemID")
+	}
+	pc.DeRegisterResultChannel(channel)
+	close(channel)
+	return nil
 }
