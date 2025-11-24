@@ -31,7 +31,7 @@ func NewVolpeAPI(ps *model.ProblemStore, sched scheduler.Scheduler, contman *con
 }
 
 func (va *VolpeAPI) RegisterProblem(
-	stream grpc.ClientStreamingServer[api.RegisterProblemRequest, api.Result],
+	stream grpc.ClientStreamingServer[common.ImageStreamObject, api.Result],
 ) error {
 	var err error
 
@@ -66,7 +66,7 @@ func (va *VolpeAPI) RegisterProblem(
 		if err != nil {
 			break
 		}
-		img := chunk.GetImage()
+		img := chunk.GetChunk()
 		if img == nil {
 			stream.SendAndClose(&api.Result{
 				Success: false,
@@ -91,7 +91,11 @@ func (va *VolpeAPI) RegisterProblem(
 }
 
 func (va *VolpeAPI) StartProblem(ctx context.Context, req *api.StartProblemRequest) (*api.Result, error) {
-	va.sched.AddProblem(req.GetProblemID())
+	problemID := req.GetProblemID()
+	fname := problemID + ".tar"
+
+	va.sched.AddProblem(problemID)
+	va.contman.AddProblem(problemID, fname)
 	return &api.Result{Success: true}, nil
 }
 

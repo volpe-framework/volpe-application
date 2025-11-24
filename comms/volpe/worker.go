@@ -3,6 +3,7 @@ package volpe
 import (
 	"context"
 	"errors"
+	"io"
 	"os"
 	"sync"
 	"volpe-framework/comms/common"
@@ -67,6 +68,25 @@ func (wc *WorkerComms) CloseCommms() {
 	}
 }
 
+func (wc *WorkerComms) HandleStreams(adjPopChannel chan *AdjustPopulationMessage) {
+	for {
+		msg, err := wc.stream.Recv()
+		if err == io.EOF {
+			log.Error().Caller().Msg("master stream closed")
+			return
+		} else if err != nil {
+			log.Error().Caller().Msg(err.Error())
+			return
+		}
+		if msg.GetAdjPop() != nil {
+			adjPop := msg.GetAdjPop()
+			adjPopChannel <- adjPop
+		} else {
+			log.Warn().Caller().Msg("received unexpected msg, ignoring")
+		}
+	}
+}
+
 func (wc *WorkerComms) SendMetrics(metrics *MetricsMessage) error {
 	metrics.WorkerID = wc.workerID
 	workerMsg := WorkerMessage{Message: &WorkerMessage_Metrics{metrics}}
@@ -88,24 +108,24 @@ func (wc *WorkerComms) SendSubPopulation(population *common.Population) error {
 
 func (wc *WorkerComms) GetImageFile(problemID string) (string, error) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
 
 	stream, err := wc.client.GetImage(ctx, &ImageRequest{
 		ProblemID: problemID,
 	})
 	if err != nil {
-		log.Error().Caller().Msgf(err.Error())
+		log.Error().Caller().Msg(err.Error())
 		return "", err
 	}
 
-	defer cancelFunc()
 
 	detailsMsg, err := stream.Recv()
 	if err != nil {
-		log.Error().Caller().Msgf(err.Error())
+		log.Error().Caller().Msg(err.Error())
 		return "", err
 	}
 	details := detailsMsg.GetDetails()
-	if err != nil {
+	if details == nil {
 		log.Error().Caller().Msgf("expected first msg details for pid %s", problemID)
 		return "", errors.New("expected details msg")
 	}
@@ -127,7 +147,7 @@ func (wc *WorkerComms) GetImageFile(problemID string) (string, error) {
 			log.Error().Caller().Msgf("PID %s: %s", problemID, err.Error())
 			return "", err
 		}
-		dataMsg := recMsg.GetData()
+		dataMsg := recMsg.GetChunk()
 		if dataMsg == nil {
 			log.Error().Caller().Msgf("PID %s: expected data msg", problemID)
 			return "", errors.New("expected data msg")

@@ -35,6 +35,14 @@ func NewContainerManager() *ContainerManager {
 	return cm
 }
 
+func (cm *ContainerManager) HasProblem(problemID string) bool {
+	cm.pcMut.Lock()
+	defer cm.pcMut.Unlock()
+
+	_, ok := cm.problemContainers[problemID]
+	return ok
+}
+
 func (cm *ContainerManager) AddProblem(problemID string, imagePath string) error {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
@@ -97,16 +105,16 @@ func (cm *ContainerManager) GetSubpopulation(problemID string) (*common.Populati
 	return container.GetSubpopulation()
 }
 
-func (cm *ContainerManager) HandlePopulationEvents(eventChannel chan *volpe.AdjustPopulationMessage) {
-	for {
-		msg, ok := <-eventChannel
-		if !ok {
-			log.Error().Caller().Msgf("event channel to CM closed")
-			return
-		}
-		cm.handleEvent(msg)
-	}
-}
+// func (cm *ContainerManager) HandlePopulationEvents(eventChannel chan *volpe.AdjustPopulationMessage) {
+// 	for {
+// 		msg, ok := <-eventChannel
+// 		if !ok {
+// 			log.Error().Caller().Msgf("event channel to CM closed")
+// 			return
+// 		}
+// 		cm.handleEvent(msg)
+// 	}
+// }
 
 func (cm *ContainerManager) IncorporatePopulation(pop *common.Population) {
 	cm.pcMut.Lock()
@@ -134,7 +142,7 @@ func (cm *ContainerManager) IncorporatePopulation(pop *common.Population) {
 	}
 }
 
-func (cm *ContainerManager) handleEvent(event *volpe.AdjustPopulationMessage) {
+func (cm *ContainerManager) HandlePopulationEvent(event *volpe.AdjustPopulationMessage) {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
 	pc, ok := cm.problemContainers[event.GetProblemID()]

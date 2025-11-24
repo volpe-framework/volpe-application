@@ -2,3 +2,4 @@
 /pyproject.toml
 /.venv
 /uv.lock
+**/*.tar

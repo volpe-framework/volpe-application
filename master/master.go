@@ -21,7 +21,7 @@ import (
 func main() {
 	metrics.InitOTelSDK()
 
-	sched, err := scheduler.NewStaticScheduler([]string{"abcd123", "xyzabc"})
+	sched, err := scheduler.NewStaticScheduler()
 	if err != nil {
 		log.Error().Caller().Msgf("err with sched: %s", err.Error())
 		panic(err)
@@ -125,12 +125,14 @@ func applySchedule(master *vcomms.MasterComms, cman *cm.ContainerManager, sched 
 					AdjPop: adjpop,
 				},
 			}
+			log.Info().Caller().Msgf("worker %s problem %s pop %s", workerID, problemID, val)
 			err = master.SendPopulationSize(workerID, &msg)
 			if err != nil {
 				log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())
 				return
 			}
 		})
+		log.Info().Caller().Msg("Applied schedule")
 		time.Sleep(30*time.Second)
 	}
 }

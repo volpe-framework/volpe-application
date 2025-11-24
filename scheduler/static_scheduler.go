@@ -15,11 +15,10 @@ type StaticScheduler struct {
 }
 
 
-func NewStaticScheduler(problems []string) (*StaticScheduler, error) {
+func NewStaticScheduler() (*StaticScheduler, error) {
 	sched := &StaticScheduler{}
-	sched.problems = make([]string, len(problems))
+	sched.problems = make([]string, 0)
 	sched.workers = make([]string, 0)
-	copy(sched.problems, problems)
 	return sched, nil
 }
 

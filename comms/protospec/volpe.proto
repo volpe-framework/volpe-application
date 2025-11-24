@@ -6,7 +6,7 @@ option go_package = "./comms/volpe";
 
 service VolpeMaster {
     rpc StartStreams (stream WorkerMessage) returns (stream MasterMessage) {}
-    rpc GetImage(ImageRequest) returns (stream ImageResponse) {}
+    rpc GetImage(ImageRequest) returns (stream ImageStreamObject) {}
 }
 
 message WorkerID {
@@ -50,22 +50,6 @@ message ApplicationMetrics {
 
 message ImageRequest {
   string problemID = 1;
-}
-
-message ImageResponse {
-  oneof response {
-    ImageDetails details = 1;
-    ImageChunk data = 2;
-  }
-}
-
-message ImageDetails {
-  string problemID = 1;
-  int32 imageSizeBytes = 2;
-}
-
-message ImageChunk {
-  bytes data = 1;
 }
 
 // TODO: add close msgs

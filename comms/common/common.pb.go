@@ -125,6 +125,184 @@ func (x *Population) GetProblemID() string {
 	return ""
 }
 
+type ImageStreamObject struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Data:
+	//
+	//	*ImageStreamObject_Details
+	//	*ImageStreamObject_Chunk
+	Data          isImageStreamObject_Data `protobuf_oneof:"data"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImageStreamObject) Reset() {
+	*x = ImageStreamObject{}
+	mi := &file_common_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImageStreamObject) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImageStreamObject) ProtoMessage() {}
+
+func (x *ImageStreamObject) ProtoReflect() protoreflect.Message {
+	mi := &file_common_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImageStreamObject.ProtoReflect.Descriptor instead.
+func (*ImageStreamObject) Descriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ImageStreamObject) GetData() isImageStreamObject_Data {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *ImageStreamObject) GetDetails() *ImageDetails {
+	if x != nil {
+		if x, ok := x.Data.(*ImageStreamObject_Details); ok {
+			return x.Details
+		}
+	}
+	return nil
+}
+
+func (x *ImageStreamObject) GetChunk() *ImageChunk {
+	if x != nil {
+		if x, ok := x.Data.(*ImageStreamObject_Chunk); ok {
+			return x.Chunk
+		}
+	}
+	return nil
+}
+
+type isImageStreamObject_Data interface {
+	isImageStreamObject_Data()
+}
+
+type ImageStreamObject_Details struct {
+	Details *ImageDetails `protobuf:"bytes,1,opt,name=details,proto3,oneof"`
+}
+
+type ImageStreamObject_Chunk struct {
+	Chunk *ImageChunk `protobuf:"bytes,2,opt,name=chunk,proto3,oneof"`
+}
+
+func (*ImageStreamObject_Details) isImageStreamObject_Data() {}
+
+func (*ImageStreamObject_Chunk) isImageStreamObject_Data() {}
+
+type ImageDetails struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ProblemID      string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
+	ImageSizeBytes int32                  `protobuf:"varint,2,opt,name=imageSizeBytes,proto3" json:"imageSizeBytes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ImageDetails) Reset() {
+	*x = ImageDetails{}
+	mi := &file_common_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImageDetails) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImageDetails) ProtoMessage() {}
+
+func (x *ImageDetails) ProtoReflect() protoreflect.Message {
+	mi := &file_common_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImageDetails.ProtoReflect.Descriptor instead.
+func (*ImageDetails) Descriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ImageDetails) GetProblemID() string {
+	if x != nil {
+		return x.ProblemID
+	}
+	return ""
+}
+
+func (x *ImageDetails) GetImageSizeBytes() int32 {
+	if x != nil {
+		return x.ImageSizeBytes
+	}
+	return 0
+}
+
+type ImageChunk struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Data          []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImageChunk) Reset() {
+	*x = ImageChunk{}
+	mi := &file_common_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImageChunk) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImageChunk) ProtoMessage() {}
+
+func (x *ImageChunk) ProtoReflect() protoreflect.Message {
+	mi := &file_common_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImageChunk.ProtoReflect.Descriptor instead.
+func (*ImageChunk) Descriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ImageChunk) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
 var File_common_proto protoreflect.FileDescriptor
 
 const file_common_proto_rawDesc = "" +
@@ -139,7 +317,17 @@ const file_common_proto_rawDesc = "" +
 	"\amembers\x18\x01 \x03(\v2\v.IndividualR\amembers\x12!\n" +
 	"\tproblemID\x18\x02 \x01(\tH\x00R\tproblemID\x88\x01\x01B\f\n" +
 	"\n" +
-	"_problemIDB\x1eZ\x1cvolpe-framework/comms/commonb\x06proto3"
+	"_problemID\"k\n" +
+	"\x11ImageStreamObject\x12)\n" +
+	"\adetails\x18\x01 \x01(\v2\r.ImageDetailsH\x00R\adetails\x12#\n" +
+	"\x05chunk\x18\x02 \x01(\v2\v.ImageChunkH\x00R\x05chunkB\x06\n" +
+	"\x04data\"T\n" +
+	"\fImageDetails\x12\x1c\n" +
+	"\tproblemID\x18\x01 \x01(\tR\tproblemID\x12&\n" +
+	"\x0eimageSizeBytes\x18\x02 \x01(\x05R\x0eimageSizeBytes\" \n" +
+	"\n" +
+	"ImageChunk\x12\x12\n" +
+	"\x04data\x18\x01 \x01(\fR\x04dataB\x1eZ\x1cvolpe-framework/comms/commonb\x06proto3"
 
 var (
 	file_common_proto_rawDescOnce sync.Once
@@ -153,18 +341,23 @@ func file_common_proto_rawDescGZIP() []byte {
 	return file_common_proto_rawDescData
 }
 
-var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_common_proto_goTypes = []any{
-	(*Individual)(nil), // 0: Individual
-	(*Population)(nil), // 1: Population
+	(*Individual)(nil),        // 0: Individual
+	(*Population)(nil),        // 1: Population
+	(*ImageStreamObject)(nil), // 2: ImageStreamObject
+	(*ImageDetails)(nil),      // 3: ImageDetails
+	(*ImageChunk)(nil),        // 4: ImageChunk
 }
 var file_common_proto_depIdxs = []int32{
 	0, // 0: Population.members:type_name -> Individual
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	3, // 1: ImageStreamObject.details:type_name -> ImageDetails
+	4, // 2: ImageStreamObject.chunk:type_name -> ImageChunk
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_common_proto_init() }
@@ -173,13 +366,17 @@ func file_common_proto_init() {
 		return
 	}
 	file_common_proto_msgTypes[1].OneofWrappers = []any{}
+	file_common_proto_msgTypes[2].OneofWrappers = []any{
+		(*ImageStreamObject_Details)(nil),
+		(*ImageStreamObject_Chunk)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_proto_rawDesc), len(file_common_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

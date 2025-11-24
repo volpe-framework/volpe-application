@@ -12,4 +12,22 @@ message Population {
   optional string problemID = 2;
 }
 
+message ImageStreamObject {
+  oneof data {
+    ImageDetails details = 1;
+    ImageChunk chunk = 2;
+  }
+}
+
+message ImageDetails {
+  string problemID = 1;
+  int32 imageSizeBytes = 2;
+}
+
+message ImageChunk {
+  bytes data = 1;
+}
+
+
+
 // TODO: Add close msgs

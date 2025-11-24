@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	common "volpe-framework/comms/common"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -28,7 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type VolpeMasterClient interface {
 	StartStreams(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[WorkerMessage, MasterMessage], error)
-	GetImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ImageResponse], error)
+	GetImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[common.ImageStreamObject], error)
 }
 
 type volpeMasterClient struct {
@@ -52,13 +53,13 @@ func (c *volpeMasterClient) StartStreams(ctx context.Context, opts ...grpc.CallO
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VolpeMaster_StartStreamsClient = grpc.BidiStreamingClient[WorkerMessage, MasterMessage]
 
-func (c *volpeMasterClient) GetImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ImageResponse], error) {
+func (c *volpeMasterClient) GetImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[common.ImageStreamObject], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &VolpeMaster_ServiceDesc.Streams[1], VolpeMaster_GetImage_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[ImageRequest, ImageResponse]{ClientStream: stream}
+	x := &grpc.GenericClientStream[ImageRequest, common.ImageStreamObject]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -69,14 +70,14 @@ func (c *volpeMasterClient) GetImage(ctx context.Context, in *ImageRequest, opts
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type VolpeMaster_GetImageClient = grpc.ServerStreamingClient[ImageResponse]
+type VolpeMaster_GetImageClient = grpc.ServerStreamingClient[common.ImageStreamObject]
 
 // VolpeMasterServer is the server API for VolpeMaster service.
 // All implementations must embed UnimplementedVolpeMasterServer
 // for forward compatibility.
 type VolpeMasterServer interface {
 	StartStreams(grpc.BidiStreamingServer[WorkerMessage, MasterMessage]) error
-	GetImage(*ImageRequest, grpc.ServerStreamingServer[ImageResponse]) error
+	GetImage(*ImageRequest, grpc.ServerStreamingServer[common.ImageStreamObject]) error
 	mustEmbedUnimplementedVolpeMasterServer()
 }
 
@@ -90,7 +91,7 @@ type UnimplementedVolpeMasterServer struct{}
 func (UnimplementedVolpeMasterServer) StartStreams(grpc.BidiStreamingServer[WorkerMessage, MasterMessage]) error {
 	return status.Errorf(codes.Unimplemented, "method StartStreams not implemented")
 }
-func (UnimplementedVolpeMasterServer) GetImage(*ImageRequest, grpc.ServerStreamingServer[ImageResponse]) error {
+func (UnimplementedVolpeMasterServer) GetImage(*ImageRequest, grpc.ServerStreamingServer[common.ImageStreamObject]) error {
 	return status.Errorf(codes.Unimplemented, "method GetImage not implemented")
 }
 func (UnimplementedVolpeMasterServer) mustEmbedUnimplementedVolpeMasterServer() {}
@@ -126,11 +127,11 @@ func _VolpeMaster_GetImage_Handler(srv interface{}, stream grpc.ServerStream) er
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(VolpeMasterServer).GetImage(m, &grpc.GenericServerStream[ImageRequest, ImageResponse]{ServerStream: stream})
+	return srv.(VolpeMasterServer).GetImage(m, &grpc.GenericServerStream[ImageRequest, common.ImageStreamObject]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type VolpeMaster_GetImageServer = grpc.ServerStreamingServer[ImageResponse]
+type VolpeMaster_GetImageServer = grpc.ServerStreamingServer[common.ImageStreamObject]
 
 // VolpeMaster_ServiceDesc is the grpc.ServiceDesc for VolpeMaster service.
 // It's only intended for direct use with grpc.RegisterService,

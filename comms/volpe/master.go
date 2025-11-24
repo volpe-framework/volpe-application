@@ -133,7 +133,7 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 	return nil
 }
 
-func (mcs *masterCommsServer) GetImage(req *ImageRequest, stream grpc.ServerStreamingServer[ImageResponse]) error {
+func (mcs *masterCommsServer) GetImage(req *ImageRequest, stream grpc.ServerStreamingServer[common.ImageStreamObject]) error {
 	problemID := req.GetProblemID()
 	// TODO: image path config
 	fname := problemID + ".tar"
@@ -149,9 +149,9 @@ func (mcs *masterCommsServer) GetImage(req *ImageRequest, stream grpc.ServerStre
 
 	buf := make([]byte, 512)
 
-	stream.Send(&ImageResponse{
-		Response: &ImageResponse_Details{
-			Details: &ImageDetails{
+	stream.Send(&common.ImageStreamObject{
+		Data: &common.ImageStreamObject_Details{
+			Details: &common.ImageDetails{
 				ProblemID: problemID,
 				ImageSizeBytes: int32(fileSize),
 			},
@@ -163,9 +163,9 @@ func (mcs *masterCommsServer) GetImage(req *ImageRequest, stream grpc.ServerStre
 		if err != nil && err != io.EOF {
 			return err
 		}
-		stream.Send(&ImageResponse{
-			Response: &ImageResponse_Data{
-				&ImageChunk{
+		stream.Send(&common.ImageStreamObject{
+			Data: &common.ImageStreamObject_Chunk{
+				Chunk: &common.ImageChunk{
 					Data: buf,
 				},
 			},

@@ -37,48 +37,22 @@ func main() {
 
 	go populationExtractor(cm, wc)
 
-	err = cm.AddProblem("problem1", "../comms/pybindings/grpc_test_img.tar")
-	if err != nil {
-		log.Fatal().Caller().Msgf("failed to run pod with error: %s", err.Error())
-		panic(err)
-	}
-	// TODO: stop container
-	// defer cm.StopContainer(containerName)
-	log.Log().Caller().Msgf("started container at port unknown") // %d", -1)
-
-	for {
-		time.Sleep(1000 * time.Millisecond)
-	}
-
-	// pme, err := met.NewPodmanMetricExporter("test_device", problems)
+	// err = cm.AddProblem("problem1", "../comms/pybindings/grpc_test_img.tar")
 	// if err != nil {
-	// 	log.Error().Caller().Msg(err.Error())
-	// }
-	// go pme.Run()
-	// log.Log().Caller().Msgf("started OTel metric exporter")
-
-	// cc, err := grpc.NewClient(fmt.Sprintf("localhost:%d", port),
-	// 	grpc.WithTransportCredentials(insecure.NewCredentials()))
-	// if err != nil {
-	// 	log.Fatal().Caller().Msgf("failed to create grpc client: %s", err.Error())
+	// 	log.Fatal().Caller().Msgf("failed to run pod with error: %s", err.Error())
 	// 	panic(err)
 	// }
-	// client := gc.NewVolpeContainerClient(cc)
-	// for {
-	// 	resp, err := client.SayHello(context.Background(), &gc.HelloRequest{Name: "xyz"})
-	// 	if err != nil {
-	// 		log.Fatal().Caller().Msgf("failed to call sayhello: %s", err.Error())
-	// 		panic(errors.New("failed to call sayhello"))
-	// 	}
-	// 	if resp.GetMessage() != "hello xyz" {
-	// 		log.Fatal().Caller().Msgf("not expected msg: %s", resp.GetMessage())
-	// 		panic(errors.New("unexpected msg from container"))
-	// 	} else {
-	// 		log.Log().Caller().Msg("got expected msg")
-	// 	}
-	// 	time.Sleep(5 * time.Second)
-	// }
+	// TODO: stop container
+	// defer cm.StopContainer(containerName)
 
+	log.Log().Caller().Msgf("started container at port unknown") // %d", -1)
+
+	adjPopChan := make(chan *vcomms.AdjustPopulationMessage, 10)
+	
+
+	go adjPopHandler(wc, adjPopChan, cm)
+	
+	wc.HandleStreams(adjPopChan)
 }
 
 func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {
@@ -96,6 +70,30 @@ func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {
 				}
 			}
 		}
-		time.Sleep(15 * time.Second)
+		time.Sleep(30 * time.Second)
+	}
+}
+
+func adjPopHandler(wc *vcomms.WorkerComms, adjPopChan chan *vcomms.AdjustPopulationMessage, cm *contman.ContainerManager) {
+	for {
+		adjPop, ok := <- adjPopChan
+		if !ok {
+			log.Info().Caller().Msg("adjPopChan closed")
+			return
+		}
+		problemID := adjPop.GetProblemID()
+		if !cm.HasProblem(problemID) {
+			fname, err := wc.GetImageFile(problemID)
+			if err != nil {
+				log.Error().Caller().Msgf("error fetching problemID %s: %s", problemID, err.Error())
+				continue
+			}
+			err = cm.AddProblem(problemID, fname)
+			if err != nil {
+				log.Error().Caller().Msgf("error running problem %s: %s", problemID, err.Error())
+				continue
+			}
+		}
+		cm.HandlePopulationEvent(adjPop)
 	}
 }

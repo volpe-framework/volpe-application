@@ -74,50 +74,6 @@ func (x *CreateImageRequest) GetImageSizeBytes() int32 {
 	return 0
 }
 
-type ImageChunk struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Data          []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ImageChunk) Reset() {
-	*x = ImageChunk{}
-	mi := &file_api_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ImageChunk) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ImageChunk) ProtoMessage() {}
-
-func (x *ImageChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ImageChunk.ProtoReflect.Descriptor instead.
-func (*ImageChunk) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *ImageChunk) GetData() []byte {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
 type Result struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
@@ -128,7 +84,7 @@ type Result struct {
 
 func (x *Result) Reset() {
 	*x = Result{}
-	mi := &file_api_proto_msgTypes[2]
+	mi := &file_api_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -140,7 +96,7 @@ func (x *Result) String() string {
 func (*Result) ProtoMessage() {}
 
 func (x *Result) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[2]
+	mi := &file_api_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -153,7 +109,7 @@ func (x *Result) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Result.ProtoReflect.Descriptor instead.
 func (*Result) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Result) GetSuccess() bool {
@@ -170,140 +126,6 @@ func (x *Result) GetErrorMessage() string {
 	return ""
 }
 
-type RegisterProblemRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Data:
-	//
-	//	*RegisterProblemRequest_Details
-	//	*RegisterProblemRequest_Image
-	Data          isRegisterProblemRequest_Data `protobuf_oneof:"data"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RegisterProblemRequest) Reset() {
-	*x = RegisterProblemRequest{}
-	mi := &file_api_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RegisterProblemRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RegisterProblemRequest) ProtoMessage() {}
-
-func (x *RegisterProblemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RegisterProblemRequest.ProtoReflect.Descriptor instead.
-func (*RegisterProblemRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *RegisterProblemRequest) GetData() isRegisterProblemRequest_Data {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
-func (x *RegisterProblemRequest) GetDetails() *ProblemDetails {
-	if x != nil {
-		if x, ok := x.Data.(*RegisterProblemRequest_Details); ok {
-			return x.Details
-		}
-	}
-	return nil
-}
-
-func (x *RegisterProblemRequest) GetImage() *ImageChunk {
-	if x != nil {
-		if x, ok := x.Data.(*RegisterProblemRequest_Image); ok {
-			return x.Image
-		}
-	}
-	return nil
-}
-
-type isRegisterProblemRequest_Data interface {
-	isRegisterProblemRequest_Data()
-}
-
-type RegisterProblemRequest_Details struct {
-	Details *ProblemDetails `protobuf:"bytes,1,opt,name=details,proto3,oneof"`
-}
-
-type RegisterProblemRequest_Image struct {
-	Image *ImageChunk `protobuf:"bytes,2,opt,name=image,proto3,oneof"`
-}
-
-func (*RegisterProblemRequest_Details) isRegisterProblemRequest_Data() {}
-
-func (*RegisterProblemRequest_Image) isRegisterProblemRequest_Data() {}
-
-type ProblemDetails struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ProblemID      string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
-	ImageSizeBytes int32                  `protobuf:"varint,2,opt,name=imageSizeBytes,proto3" json:"imageSizeBytes,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *ProblemDetails) Reset() {
-	*x = ProblemDetails{}
-	mi := &file_api_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ProblemDetails) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ProblemDetails) ProtoMessage() {}
-
-func (x *ProblemDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ProblemDetails.ProtoReflect.Descriptor instead.
-func (*ProblemDetails) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *ProblemDetails) GetProblemID() string {
-	if x != nil {
-		return x.ProblemID
-	}
-	return ""
-}
-
-func (x *ProblemDetails) GetImageSizeBytes() int32 {
-	if x != nil {
-		return x.ImageSizeBytes
-	}
-	return 0
-}
-
 type StartProblemRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProblemID     string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
@@ -313,7 +135,7 @@ type StartProblemRequest struct {
 
 func (x *StartProblemRequest) Reset() {
 	*x = StartProblemRequest{}
-	mi := &file_api_proto_msgTypes[5]
+	mi := &file_api_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -325,7 +147,7 @@ func (x *StartProblemRequest) String() string {
 func (*StartProblemRequest) ProtoMessage() {}
 
 func (x *StartProblemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[5]
+	mi := &file_api_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -338,7 +160,7 @@ func (x *StartProblemRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartProblemRequest.ProtoReflect.Descriptor instead.
 func (*StartProblemRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *StartProblemRequest) GetProblemID() string {
@@ -357,7 +179,7 @@ type StreamResultsRequest struct {
 
 func (x *StreamResultsRequest) Reset() {
 	*x = StreamResultsRequest{}
-	mi := &file_api_proto_msgTypes[6]
+	mi := &file_api_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -369,7 +191,7 @@ func (x *StreamResultsRequest) String() string {
 func (*StreamResultsRequest) ProtoMessage() {}
 
 func (x *StreamResultsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[6]
+	mi := &file_api_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,7 +204,7 @@ func (x *StreamResultsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamResultsRequest.ProtoReflect.Descriptor instead.
 func (*StreamResultsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *StreamResultsRequest) GetProblemID() string {
@@ -402,7 +224,7 @@ type ProblemResult struct {
 
 func (x *ProblemResult) Reset() {
 	*x = ProblemResult{}
-	mi := &file_api_proto_msgTypes[7]
+	mi := &file_api_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -414,7 +236,7 @@ func (x *ProblemResult) String() string {
 func (*ProblemResult) ProtoMessage() {}
 
 func (x *ProblemResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[7]
+	mi := &file_api_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -427,7 +249,7 @@ func (x *ProblemResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProblemResult.ProtoReflect.Descriptor instead.
 func (*ProblemResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ProblemResult) GetProblemID() string {
@@ -453,7 +275,7 @@ type AbortProblemRequest struct {
 
 func (x *AbortProblemRequest) Reset() {
 	*x = AbortProblemRequest{}
-	mi := &file_api_proto_msgTypes[8]
+	mi := &file_api_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -465,7 +287,7 @@ func (x *AbortProblemRequest) String() string {
 func (*AbortProblemRequest) ProtoMessage() {}
 
 func (x *AbortProblemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_msgTypes[8]
+	mi := &file_api_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -478,7 +300,7 @@ func (x *AbortProblemRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AbortProblemRequest.ProtoReflect.Descriptor instead.
 func (*AbortProblemRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AbortProblemRequest) GetProblemID() string {
@@ -495,20 +317,10 @@ const file_api_proto_rawDesc = "" +
 	"\tapi.proto\x1a\fcommon.proto\"Z\n" +
 	"\x12CreateImageRequest\x12\x1c\n" +
 	"\timageName\x18\x01 \x01(\tR\timageName\x12&\n" +
-	"\x0eimageSizeBytes\x18\x02 \x01(\x05R\x0eimageSizeBytes\" \n" +
-	"\n" +
-	"ImageChunk\x12\x12\n" +
-	"\x04data\x18\x01 \x01(\fR\x04data\"F\n" +
+	"\x0eimageSizeBytes\x18\x02 \x01(\x05R\x0eimageSizeBytes\"F\n" +
 	"\x06Result\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\"\n" +
-	"\ferrorMessage\x18\x02 \x01(\tR\ferrorMessage\"r\n" +
-	"\x16RegisterProblemRequest\x12+\n" +
-	"\adetails\x18\x01 \x01(\v2\x0f.ProblemDetailsH\x00R\adetails\x12#\n" +
-	"\x05image\x18\x02 \x01(\v2\v.ImageChunkH\x00R\x05imageB\x06\n" +
-	"\x04data\"V\n" +
-	"\x0eProblemDetails\x12\x1c\n" +
-	"\tproblemID\x18\x01 \x01(\tR\tproblemID\x12&\n" +
-	"\x0eimageSizeBytes\x18\x02 \x01(\x05R\x0eimageSizeBytes\"3\n" +
+	"\ferrorMessage\x18\x02 \x01(\tR\ferrorMessage\"3\n" +
 	"\x13StartProblemRequest\x12\x1c\n" +
 	"\tproblemID\x18\x01 \x01(\tR\tproblemID\"4\n" +
 	"\x14StreamResultsRequest\x12\x1c\n" +
@@ -517,9 +329,9 @@ const file_api_proto_rawDesc = "" +
 	"\tproblemID\x18\x01 \x01(\tR\tproblemID\x12-\n" +
 	"\vbestResults\x18\x02 \x01(\v2\v.PopulationR\vbestResults\"3\n" +
 	"\x13AbortProblemRequest\x12\x1c\n" +
-	"\tproblemID\x18\x01 \x01(\tR\tproblemID2\xe1\x01\n" +
-	"\bVolpeAPI\x127\n" +
-	"\x0fRegisterProblem\x12\x17.RegisterProblemRequest\x1a\a.Result\"\x00(\x01\x12/\n" +
+	"\tproblemID\x18\x01 \x01(\tR\tproblemID2\xdc\x01\n" +
+	"\bVolpeAPI\x122\n" +
+	"\x0fRegisterProblem\x12\x12.ImageStreamObject\x1a\a.Result\"\x00(\x01\x12/\n" +
 	"\fStartProblem\x12\x14.StartProblemRequest\x1a\a.Result\"\x00\x12:\n" +
 	"\rStreamResults\x12\x15.StreamResultsRequest\x1a\x0e.ProblemResult\"\x000\x01\x12/\n" +
 	"\fAbortProblem\x12\x14.AbortProblemRequest\x1a\a.Result\"\x00B\x1bZ\x19volpe-framework/comms/apib\x06proto3"
@@ -536,36 +348,32 @@ func file_api_proto_rawDescGZIP() []byte {
 	return file_api_proto_rawDescData
 }
 
-var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_api_proto_goTypes = []any{
-	(*CreateImageRequest)(nil),     // 0: CreateImageRequest
-	(*ImageChunk)(nil),             // 1: ImageChunk
-	(*Result)(nil),                 // 2: Result
-	(*RegisterProblemRequest)(nil), // 3: RegisterProblemRequest
-	(*ProblemDetails)(nil),         // 4: ProblemDetails
-	(*StartProblemRequest)(nil),    // 5: StartProblemRequest
-	(*StreamResultsRequest)(nil),   // 6: StreamResultsRequest
-	(*ProblemResult)(nil),          // 7: ProblemResult
-	(*AbortProblemRequest)(nil),    // 8: AbortProblemRequest
-	(*common.Population)(nil),      // 9: Population
+	(*CreateImageRequest)(nil),       // 0: CreateImageRequest
+	(*Result)(nil),                   // 1: Result
+	(*StartProblemRequest)(nil),      // 2: StartProblemRequest
+	(*StreamResultsRequest)(nil),     // 3: StreamResultsRequest
+	(*ProblemResult)(nil),            // 4: ProblemResult
+	(*AbortProblemRequest)(nil),      // 5: AbortProblemRequest
+	(*common.Population)(nil),        // 6: Population
+	(*common.ImageStreamObject)(nil), // 7: ImageStreamObject
 }
 var file_api_proto_depIdxs = []int32{
-	4, // 0: RegisterProblemRequest.details:type_name -> ProblemDetails
-	1, // 1: RegisterProblemRequest.image:type_name -> ImageChunk
-	9, // 2: ProblemResult.bestResults:type_name -> Population
-	3, // 3: VolpeAPI.RegisterProblem:input_type -> RegisterProblemRequest
-	5, // 4: VolpeAPI.StartProblem:input_type -> StartProblemRequest
-	6, // 5: VolpeAPI.StreamResults:input_type -> StreamResultsRequest
-	8, // 6: VolpeAPI.AbortProblem:input_type -> AbortProblemRequest
-	2, // 7: VolpeAPI.RegisterProblem:output_type -> Result
-	2, // 8: VolpeAPI.StartProblem:output_type -> Result
-	7, // 9: VolpeAPI.StreamResults:output_type -> ProblemResult
-	2, // 10: VolpeAPI.AbortProblem:output_type -> Result
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6, // 0: ProblemResult.bestResults:type_name -> Population
+	7, // 1: VolpeAPI.RegisterProblem:input_type -> ImageStreamObject
+	2, // 2: VolpeAPI.StartProblem:input_type -> StartProblemRequest
+	3, // 3: VolpeAPI.StreamResults:input_type -> StreamResultsRequest
+	5, // 4: VolpeAPI.AbortProblem:input_type -> AbortProblemRequest
+	1, // 5: VolpeAPI.RegisterProblem:output_type -> Result
+	1, // 6: VolpeAPI.StartProblem:output_type -> Result
+	4, // 7: VolpeAPI.StreamResults:output_type -> ProblemResult
+	1, // 8: VolpeAPI.AbortProblem:output_type -> Result
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_init() }
@@ -573,17 +381,13 @@ func file_api_proto_init() {
 	if File_api_proto != nil {
 		return
 	}
-	file_api_proto_msgTypes[3].OneofWrappers = []any{
-		(*RegisterProblemRequest_Details)(nil),
-		(*RegisterProblemRequest_Image)(nil),
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_rawDesc), len(file_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

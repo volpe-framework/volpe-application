@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	common "volpe-framework/comms/common"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -29,7 +30,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type VolpeAPIClient interface {
-	RegisterProblem(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[RegisterProblemRequest, Result], error)
+	RegisterProblem(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[common.ImageStreamObject, Result], error)
 	StartProblem(ctx context.Context, in *StartProblemRequest, opts ...grpc.CallOption) (*Result, error)
 	StreamResults(ctx context.Context, in *StreamResultsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ProblemResult], error)
 	AbortProblem(ctx context.Context, in *AbortProblemRequest, opts ...grpc.CallOption) (*Result, error)
@@ -43,18 +44,18 @@ func NewVolpeAPIClient(cc grpc.ClientConnInterface) VolpeAPIClient {
 	return &volpeAPIClient{cc}
 }
 
-func (c *volpeAPIClient) RegisterProblem(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[RegisterProblemRequest, Result], error) {
+func (c *volpeAPIClient) RegisterProblem(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[common.ImageStreamObject, Result], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &VolpeAPI_ServiceDesc.Streams[0], VolpeAPI_RegisterProblem_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[RegisterProblemRequest, Result]{ClientStream: stream}
+	x := &grpc.GenericClientStream[common.ImageStreamObject, Result]{ClientStream: stream}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type VolpeAPI_RegisterProblemClient = grpc.ClientStreamingClient[RegisterProblemRequest, Result]
+type VolpeAPI_RegisterProblemClient = grpc.ClientStreamingClient[common.ImageStreamObject, Result]
 
 func (c *volpeAPIClient) StartProblem(ctx context.Context, in *StartProblemRequest, opts ...grpc.CallOption) (*Result, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -99,7 +100,7 @@ func (c *volpeAPIClient) AbortProblem(ctx context.Context, in *AbortProblemReque
 // All implementations must embed UnimplementedVolpeAPIServer
 // for forward compatibility.
 type VolpeAPIServer interface {
-	RegisterProblem(grpc.ClientStreamingServer[RegisterProblemRequest, Result]) error
+	RegisterProblem(grpc.ClientStreamingServer[common.ImageStreamObject, Result]) error
 	StartProblem(context.Context, *StartProblemRequest) (*Result, error)
 	StreamResults(*StreamResultsRequest, grpc.ServerStreamingServer[ProblemResult]) error
 	AbortProblem(context.Context, *AbortProblemRequest) (*Result, error)
@@ -113,7 +114,7 @@ type VolpeAPIServer interface {
 // pointer dereference when methods are called.
 type UnimplementedVolpeAPIServer struct{}
 
-func (UnimplementedVolpeAPIServer) RegisterProblem(grpc.ClientStreamingServer[RegisterProblemRequest, Result]) error {
+func (UnimplementedVolpeAPIServer) RegisterProblem(grpc.ClientStreamingServer[common.ImageStreamObject, Result]) error {
 	return status.Errorf(codes.Unimplemented, "method RegisterProblem not implemented")
 }
 func (UnimplementedVolpeAPIServer) StartProblem(context.Context, *StartProblemRequest) (*Result, error) {
@@ -147,11 +148,11 @@ func RegisterVolpeAPIServer(s grpc.ServiceRegistrar, srv VolpeAPIServer) {
 }
 
 func _VolpeAPI_RegisterProblem_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(VolpeAPIServer).RegisterProblem(&grpc.GenericServerStream[RegisterProblemRequest, Result]{ServerStream: stream})
+	return srv.(VolpeAPIServer).RegisterProblem(&grpc.GenericServerStream[common.ImageStreamObject, Result]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type VolpeAPI_RegisterProblemServer = grpc.ClientStreamingServer[RegisterProblemRequest, Result]
+type VolpeAPI_RegisterProblemServer = grpc.ClientStreamingServer[common.ImageStreamObject, Result]
 
 func _VolpeAPI_StartProblem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StartProblemRequest)
