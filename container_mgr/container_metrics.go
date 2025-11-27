@@ -54,7 +54,6 @@ func (cm *ContainerManager) RunMetricsExport(comms *volpe.WorkerComms, deviceNam
 	for {
 		statChan := cm.getMetricsChannel(conn)
 		report := <-statChan
-		log.Info().Caller().Msg("got report")
 		totalCPU := float32(0)
 		totalMem := float32(0)
 		for i := range report.Stats {

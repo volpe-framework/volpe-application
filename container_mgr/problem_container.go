@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"sync"
+	"time"
 	comms "volpe-framework/comms/common"
 	ccomms "volpe-framework/comms/container"
 	vcomms "volpe-framework/comms/volpe"
@@ -30,10 +31,11 @@ func genContainerName(problemID string) string {
 
 const DEFAULT_CONTAINER_PORT uint16 = 8081
 
-func NewProblemContainer(problemID string, imagePath string) (*ProblemContainer, error) {
+func NewProblemContainer(problemID string, imagePath string, worker bool) (*ProblemContainer, error) {
 	pc := new(ProblemContainer)
 	pc.problemID = problemID
 	pc.containerName = genContainerName(problemID)
+	pc.resultChannels = make(map[chan *comms.Population]bool)
 
 	hostPort, err := runImage(imagePath, pc.containerName, DEFAULT_CONTAINER_PORT)
 	if err != nil {
@@ -48,6 +50,14 @@ func NewProblemContainer(problemID string, imagePath string) (*ProblemContainer,
 		return nil, err
 	}
 	pc.commsClient = ccomms.NewVolpeContainerClient(cc)
+
+	if !worker {
+		go pc.sendResults(context.TODO())
+	}
+
+	if worker {
+		go pc.runGenerations(context.TODO())
+	}
 
 	return pc, nil
 }
@@ -71,9 +81,10 @@ func (pc *ProblemContainer) DeRegisterResultChannel(channel chan *comms.Populati
 }
 
 func (pc *ProblemContainer) GetSubpopulation() (*comms.Population, error) {
-	pop, err := pc.commsClient.GetBestPopulation(context.Background(), &ccomms.PopulationSize{Size: -1})
+	// TODO: best population size config
+	pop, err := pc.commsClient.GetBestPopulation(context.Background(), &ccomms.PopulationSize{Size: 10})
 	if err != nil {
-		log.Err(err).Caller().Msg("")
+		log.Error().Caller().Msg(err.Error())
 		return nil, err
 	}
 	pop.ProblemID = &pc.problemID
@@ -103,3 +114,36 @@ func (pc *ProblemContainer) HandleEvents(eventChannel chan *vcomms.AdjustPopulat
 	}
 }
 
+func (pc *ProblemContainer) sendResultOnce() {
+	pc.rcMut.Lock()
+	defer pc.rcMut.Unlock()
+
+	result, err := pc.commsClient.GetBestPopulation(context.Background(), &ccomms.PopulationSize{Size: 10})
+	if err != nil {
+		log.Err(err).Caller().Msgf("fetching best popln for %s failed", pc.problemID)
+	}
+
+	for channel, _ := range pc.resultChannels {
+		channel <- result
+	}
+}
+
+func (pc *ProblemContainer) sendResults(ctx context.Context) {
+	for {
+		time.Sleep(10*time.Second)
+		if ctx.Err() != nil {
+			return
+		}
+		pc.sendResultOnce()
+	}
+
+}
+
+func (pc *ProblemContainer) runGenerations(ctx context.Context) {
+	for {
+		_, err := pc.commsClient.RunForGenerations(ctx, &ccomms.PopulationSize{Size: 3})
+		if err != nil {
+			log.Err(err).Caller().Msgf("running gen for %s failed", pc.problemID)
+		}
+	}
+}

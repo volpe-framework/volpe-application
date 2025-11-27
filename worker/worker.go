@@ -8,13 +8,15 @@ import (
 
 	vcomms "volpe-framework/comms/volpe"
 	contman "volpe-framework/container_mgr"
-	"volpe-framework/metrics"
+	// "volpe-framework/metrics"
 
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	metrics.InitOTelSDK()
+	// TODO: reenable when required
+	// metrics.InitOTelSDK()
+
 	endpoint, ok := os.LookupEnv("VOLPE_MASTER")
 	if !ok {
 		log.Warn().Caller().Msgf("using default VOLPE_MASTER of localhost:8080")
@@ -31,7 +33,7 @@ func main() {
 		log.Fatal().Caller().Msgf("could not create workercomms: %s", err.Error())
 		panic(err)
 	}
-	cm := contman.NewContainerManager()
+	cm := contman.NewContainerManager(true)
 
 	go cm.RunMetricsExport(wc, workerID)
 
@@ -48,7 +50,6 @@ func main() {
 	log.Log().Caller().Msgf("started container at port unknown") // %d", -1)
 
 	adjPopChan := make(chan *vcomms.AdjustPopulationMessage, 10)
-	
 
 	go adjPopHandler(wc, adjPopChan, cm)
 	
@@ -67,10 +68,12 @@ func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {
 						pop.GetProblemID(),
 						err.Error(),
 					)
+					continue
 				}
+				log.Info().Caller().Msgf("sent popln for %s", pop.GetProblemID())
 			}
 		}
-		time.Sleep(30 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -93,6 +96,7 @@ func adjPopHandler(wc *vcomms.WorkerComms, adjPopChan chan *vcomms.AdjustPopulat
 				log.Error().Caller().Msgf("error running problem %s: %s", problemID, err.Error())
 				continue
 			}
+			log.Info().Caller().Msgf("running new problem %s", problemID)
 		}
 		cm.HandlePopulationEvent(adjPop)
 	}

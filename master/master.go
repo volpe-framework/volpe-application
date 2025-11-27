@@ -8,9 +8,10 @@ import (
 	ccomms "volpe-framework/comms/common"
 	vcomms "volpe-framework/comms/volpe"
 	cm "volpe-framework/container_mgr"
-	"volpe-framework/metrics"
-	"volpe-framework/scheduler"
+
+	// "volpe-framework/metrics"
 	vapi "volpe-framework/comms/api"
+	"volpe-framework/scheduler"
 
 	model "volpe-framework/master/model"
 
@@ -19,7 +20,8 @@ import (
 )
 
 func main() {
-	metrics.InitOTelSDK()
+	// TODO: reenable when required
+	// metrics.InitOTelSDK()
 
 	sched, err := scheduler.NewStaticScheduler()
 	if err != nil {
@@ -37,7 +39,7 @@ func main() {
 	portD := uint16(0)
 	fmt.Sscan(port, &portD)
 
-	cman := cm.NewContainerManager()
+	cman := cm.NewContainerManager(false)
 
 	metricChan := make(chan *vcomms.MetricsMessage, 10)
 	popChan := make(chan *ccomms.Population, 10)
@@ -83,6 +85,7 @@ func recvPopulation(cman *cm.ContainerManager, popChan chan *ccomms.Population) 
 		}
 		cman.IncorporatePopulation(m)
 		log.Info().Caller().Msgf("received population for problem %s", m.GetProblemID())
+		fmt.Println(m.GetProblemID() + " ", m.Members[0].Fitness)
 	}
 }
 

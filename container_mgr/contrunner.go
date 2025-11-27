@@ -42,7 +42,7 @@ func runImage(imagePath string, containerName string, containerPort uint16) (uin
 		log.Error().Caller().Msg(fmt.Sprintf("error importing image from %s: %s", imagePath, err.Error()))
 		return 0, err
 	}
-	log.Warn().Msg(fmt.Sprintf("loaded image %s from file %s\n", imgLoadReport.Names[0], imagePath))
+	log.Info().Msg(fmt.Sprintf("loaded image %s from file %s\n", imgLoadReport.Names[0], imagePath))
 
 	imageName := imgLoadReport.Names[0]
 
@@ -52,10 +52,12 @@ func runImage(imagePath string, containerName string, containerPort uint16) (uin
 
 	sg := specgen.NewSpecGenerator(imageName, false)
 	remove := true
+	terminal := true
 	sg.Remove = &remove
 	sg.Name = containerName
 	pm := types.PortMapping{ContainerPort: containerPort}
 	sg.PortMappings = []types.PortMapping{pm}
+	sg.Terminal = &terminal
 	cr, err := containers.CreateWithSpec(conn, sg, nil)
 	if err != nil {
 		log.Error().Caller().Msg(fmt.Sprintf("could not create container with image %s: %s", imageName, err.Error()))
@@ -66,6 +68,16 @@ func runImage(imagePath string, containerName string, containerPort uint16) (uin
 		log.Error().Caller().Msg(fmt.Sprintf("could not start container %s: %s", cr.ID, err.Error()))
 		return 0, err
 	}
+
+	//outFile, _ := os.Create(containerName + "_logs")
+	//errFile, _ := os.Create(containerName + "_err")
+	go func() {
+		err := containers.Attach(conn, cr.ID, nil, os.Stdout, os.Stderr, nil, nil)
+		if err != nil {
+			log.Error().Caller().Msgf("could not attach container %s: %s", cr.ID, err.Error())
+		}
+	}()
+
 	inspectContainerData, _ := containers.Inspect(conn, containerName, nil)
 	hostPort, _ := strconv.Atoi(inspectContainerData.HostConfig.PortBindings[fmt.Sprintf("%d/tcp", containerPort)][0].HostPort)
 	log.Info().Msg("successfully running container from " + imagePath)

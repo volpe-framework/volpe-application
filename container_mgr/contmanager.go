@@ -19,19 +19,21 @@ import (
 // TODO: testing for this module
 
 type ContainerManager struct {
-	problemContainers map[string]*ProblemContainer
-	pcMut             sync.Mutex
-	containers        map[string]string
-	containersUpdated bool
-	meter             otelmetric.Meter
+	problemContainers 	map[string]*ProblemContainer
+	pcMut             	sync.Mutex
+	containers        	map[string]string
+	containersUpdated 	bool
+	meter             	otelmetric.Meter
+	worker 				bool
 }
 
-func NewContainerManager() *ContainerManager {
+func NewContainerManager(worker bool) *ContainerManager {
 	cm := new(ContainerManager)
 	cm.meter = otel.Meter("volpe-framework")
 	cm.problemContainers = make(map[string]*ProblemContainer)
 	cm.containers = make(map[string]string)
 	cm.containersUpdated = false
+	cm.worker = worker
 	return cm
 }
 
@@ -53,7 +55,7 @@ func (cm *ContainerManager) AddProblem(problemID string, imagePath string) error
 		return errors.New("problemID already has container")
 	}
 
-	pc, err := NewProblemContainer(problemID, imagePath)
+	pc, err := NewProblemContainer(problemID, imagePath, cm.worker)
 	if err != nil {
 		log.Error().Caller().Msgf("error starting pID %s with image %s: %s", problemID, imagePath, err.Error())
 		return err

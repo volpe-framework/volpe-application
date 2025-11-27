@@ -39,6 +39,8 @@ Any other option to exit`
 			registerProblem(client)
 		case "s":
 			startProblem(client)
+		case "r":
+			streamResults(client)
 
 		default: done = true
 		}
@@ -114,5 +116,28 @@ func startProblem(client api.VolpeAPIClient) {
 	}
 	if !result.Success {
 		fmt.Print("error: " + result.GetErrorMessage())
+	}
+}
+
+func streamResults(client api.VolpeAPIClient) {
+	problemID := ""
+	fmt.Print("Enter the problemID: ")
+	fmt.Scan(&problemID)
+
+	stream, err := client.StreamResults(context.Background(), &api.StreamResultsRequest{ProblemID: problemID})
+	if err != nil {
+		panic(err)
+	}
+	for {
+		msg, err := stream.Recv()
+		if err != nil {
+			fmt.Println("exiting with error ", err.Error())
+			break
+		}
+		best := msg.GetBestResults()
+		for member := range best.Members {
+			fmt.Print(best.Members[member].GetFitness(), " ")
+		}
+		fmt.Print("\n")
 	}
 }

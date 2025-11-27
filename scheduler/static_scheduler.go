@@ -5,7 +5,7 @@ import (
 	"sync"
 	vcomms "volpe-framework/comms/volpe"
 
-	"github.com/rs/zerolog/log"
+	//"github.com/rs/zerolog/log"
 )
 
 type StaticScheduler struct {
@@ -34,7 +34,8 @@ func (ss *StaticScheduler) AddWorker(worker string) {
 }
 
 func (ss *StaticScheduler) UpdateMetrics(metrics *vcomms.MetricsMessage) {
-	log.Warn().Caller().Msgf("skipping metrics update for static scheduler")
+	// TODO: apply metrics update
+	//log.Warn().Caller().Msgf("skipping metrics update for static scheduler")
 }
 
 func (ss *StaticScheduler) RemoveWorker(worker string) {
