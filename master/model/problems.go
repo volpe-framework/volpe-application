@@ -3,6 +3,7 @@ package model
 import (
 	"sync"
 	"volpe-framework/comms/common"
+	"errors"
 )
 
 type ProblemStore struct {
@@ -13,7 +14,7 @@ type ProblemStore struct {
 
 type Problem struct {
 	ProblemID string
-	ImageReady bool
+	ProblemFile string
 	ResultChan chan *common.Population
 }
 
@@ -24,7 +25,7 @@ func NewProblemStore() (*ProblemStore, error) {
 func (ps *ProblemStore) NewProblem(id string) {
 	problem := Problem {
 		ProblemID: id,
-		ImageReady: false,
+		ProblemFile: "",
 		ResultChan: nil,
 	}
 
@@ -34,7 +35,7 @@ func (ps *ProblemStore) NewProblem(id string) {
 	ps.problems[id] = &problem
 }
 
-func (ps *ProblemStore) RegisterImage(id string) {
+func (ps *ProblemStore) RegisterImage(id string, fname string) {
 	ps.mut.Lock()
 	defer ps.mut.Unlock()
 
@@ -42,23 +43,24 @@ func (ps *ProblemStore) RegisterImage(id string) {
 
 	prob := ps.problems[id]
 	if prob != nil {
-		prob.ImageReady = true
+		prob.ProblemFile = fname
 	} else {
 		ps.problems[id] = &Problem{
 			ProblemID: id,
-			ImageReady: true,
+			ProblemFile: fname,
 			ResultChan: nil,
 		}
 	}
 }
 
-func (ps *ProblemStore) StartProblem(id string, channel chan *common.Population) {
+func (ps *ProblemStore) StartProblem(id string, channel chan *common.Population) error {
 	ps.mut.Lock()
 	defer ps.mut.Unlock()
 
 	prob := ps.problems[id]
-	if prob == nil {
-		return
+	if prob == nil || prob.ProblemFile == "" {
+		return errors.New("Missing or incomplete problem")
 	}
 	ps.problems[id].ResultChan = channel
+	return nil
 }

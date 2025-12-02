@@ -2,7 +2,6 @@ package container_mgr_test
 
 import "testing"
 import (
-	ccomms "volpe-framework/comms/container"
 	cman "volpe-framework/container_mgr"
 )
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"time"
 	ccomms "volpe-framework/comms/common"
@@ -10,13 +9,13 @@ import (
 	cm "volpe-framework/container_mgr"
 
 	// "volpe-framework/metrics"
-	vapi "volpe-framework/comms/api"
 	"volpe-framework/scheduler"
+
+	apilib "volpe-framework/master/api"
 
 	model "volpe-framework/master/model"
 
 	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
 )
 
 func main() {
@@ -52,20 +51,13 @@ func main() {
 
 	problemStore, _ := model.NewProblemStore()
 
-	api, err := NewVolpeAPI(problemStore, sched, cman)
+	api, err := apilib.NewVolpeAPI(problemStore, sched, cman)
 	if err != nil {
 		panic(err)
 	}
 
-	serv := grpc.NewServer()
-	lis, err := net.Listen("tcp", "0.0.0.0:8000")
-	if err != nil {
-		panic(err)
-	}
+	apilib.RunAPI(8000, api)
 	log.Info().Caller().Msgf("master API listening on port %d", 8000)
-	vapi.RegisterVolpeAPIServer(serv, api)
-
-	go serv.Serve(lis)
 
 	go sendMetric(metricChan, sched)
 
