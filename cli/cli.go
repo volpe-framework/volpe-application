@@ -1,26 +1,17 @@
 package main
 
 import (
-	"context"
+	"bufio"
 	"fmt"
+	"net/http"
 	"os"
-	"volpe-framework/comms/api"
-	"volpe-framework/comms/common"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
 	target := os.Getenv("VOLPE_ENDPOINT")
 	if target == "" {
-		target = "localhost:8000"
+		target = "http://localhost:8000"
 	}
-	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		panic(err)
-	}
-	client := api.NewVolpeAPIClient(conn)
 
 	optionsMsg := `1. n - register Problem
 2. s - start Problem
@@ -36,108 +27,42 @@ Any other option to exit`
 		fmt.Scan(&option)
 		switch option {
 		case "n":
-			registerProblem(client)
+			// registerProblem(client)
+			fmt.Println("Please use insomnia for this")
 		case "s":
-			startProblem(client)
+			fmt.Println("Please use insomnia for this")
 		case "r":
-			streamResults(client)
-
+			streamResults(target)
 		default: done = true
 		}
 	}
 }
 
-func registerProblem(client api.VolpeAPIClient) {
-	fname := ""
-	problemID := ""
-
-	fmt.Print("Enter the file name: ")
-	fmt.Scan(&fname)
-
-	fmt.Print("Enter the problem ID: ")
-	fmt.Scan(&problemID)
-
-	stream, err := client.RegisterProblem(context.Background())
-	if err != nil {
-		panic(err)
-	}
-
-	stat, err := os.Stat(fname)
-	if err != nil {
-		panic(err)
-	}
-	fileSize := int(stat.Size())
-
-	err = stream.Send(&common.ImageStreamObject{
-		Data: &common.ImageStreamObject_Details{
-			Details: &common.ImageDetails{
-				ProblemID: problemID,
-				ImageSizeBytes: int32(fileSize),
-			},
-		},
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	file, _ := os.Open(fname)
-	defer file.Close()
-
-	done := 0
-	buf := make([]byte, 512)
-	for done < fileSize {
-		cur, _ := file.Read(buf)
-		stream.Send(&common.ImageStreamObject{
-			Data: &common.ImageStreamObject_Chunk{
-				Chunk: &common.ImageChunk{
-					Data: buf,
-				},
-			},
-		})
-		done += cur
-	}
-	result, err := stream.CloseAndRecv()
-	if err != nil {
-		panic(err)
-	}
-	if !result.Success {
-		fmt.Print("error: " + result.GetErrorMessage())
-	}
-}
-
-func startProblem(client api.VolpeAPIClient) {
+func streamResults(endpoint string) {
 	problemID := ""
 	fmt.Print("Enter the problemID: ")
 	fmt.Scan(&problemID)
 
-	result, err := client.StartProblem(context.Background(), &api.StartProblemRequest{ProblemID: problemID})
+	resp, err := http.Get(endpoint + "/problems/"+problemID+"/results")
 	if err != nil {
 		panic(err)
 	}
-	if !result.Success {
-		fmt.Print("error: " + result.GetErrorMessage())
-	}
-}
 
-func streamResults(client api.VolpeAPIClient) {
-	problemID := ""
-	fmt.Print("Enter the problemID: ")
-	fmt.Scan(&problemID)
+	rd := bufio.NewReader(resp.Body)
 
-	stream, err := client.StreamResults(context.Background(), &api.StreamResultsRequest{ProblemID: problemID})
-	if err != nil {
-		panic(err)
-	}
+	defer resp.Body.Close()
+
+	bufLines := make([]string, 0, 10)
+
 	for {
-		msg, err := stream.Recv()
+		nextLine, err := rd.ReadString('\n')
 		if err != nil {
-			fmt.Println("exiting with error ", err.Error())
+			fmt.Println(bufLines)
 			break
 		}
-		best := msg.GetBestResults()
-		for member := range best.Members {
-			fmt.Print(best.Members[member].GetFitness(), " ")
+		if len(nextLine) == 1 {
+			fmt.Println(bufLines)
+			clear(bufLines)
 		}
-		fmt.Print("\n")
 	}
 }

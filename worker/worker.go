@@ -47,8 +47,6 @@ func main() {
 	// TODO: stop container
 	// defer cm.StopContainer(containerName)
 
-	log.Log().Caller().Msgf("started container at port unknown") // %d", -1)
-
 	adjPopChan := make(chan *vcomms.AdjustPopulationMessage, 10)
 
 	go adjPopHandler(wc, adjPopChan, cm)

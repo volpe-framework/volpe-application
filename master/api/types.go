@@ -10,11 +10,11 @@ func FailedResponse(msg string) Response {
 }
 
 type ProblemResult struct {
-	problemID string
-	population []Individual
+	ProblemID string `json:"problemID"`
+	Population []Individual `json:"population"`
 }
 
 type Individual struct {
-	fitness float32
-	genotype string
+	Fitness float32 `json:"fitness"`
+	Genotype string `json:"genotype"`
 }

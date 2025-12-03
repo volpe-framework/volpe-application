@@ -2,6 +2,7 @@ package api
 
 import (
 	"io"
+	"time"
 	"os"
 	"volpe-framework/comms/common"
 	contman "volpe-framework/container_mgr"
@@ -98,7 +99,7 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 }
 
 func (va *VolpeAPI) StartProblem(c *gin.Context) {
-	problemID := c.Param("problemID")
+	problemID := c.Param("id")
 	if len(problemID) == 0 {
 		c.AbortWithStatusJSON(400, "missing path param ID")
 		return
@@ -113,15 +114,40 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 
 func (va *VolpeAPI) StreamResults (c *gin.Context) {
 
-	problemID := c.Param("problemID")
+	log.Info().Msg("streaming results")
+
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Writer.Flush()
+
+	log.Info().Msg("set headers")
+
+	problemID := c.Param("id")
 
 	channel := make(chan *common.Population)
 	err := va.contman.RegisterResultListener(problemID, channel)
 	if err != nil {
-		return
+		log.Error().Caller().Msgf("error listening to pid %s: %s", problemID, err.Error())
 	}
 
+	log.Info().Msg("registered listener")
+
 	defer va.contman.RemoveResultListener(problemID, channel)
+
+	// sendChan := make(chan *ProblemResult, 10)
+
+	// c.Stream(func(w io.Writer) bool {
+	// 	msg, ok := <- sendChan
+	// 	if ok {
+	// 		log.Info().Msg("sending msg")
+	// 		w.Write([]byte("message:"+ msg.ProblemID + "\n\n"))
+	// 		return true
+	// 	}
+	// 	return false
+	// })
+
+	log.Info().Msg("created stream")
 
 	for {
 		pop, ok := <- channel
@@ -130,15 +156,24 @@ func (va *VolpeAPI) StreamResults (c *gin.Context) {
 			break
 		}
 		resultPop := ProblemResult{}
-		resultPop.population = make([]Individual, len(pop.GetMembers()))
-		resultPop.problemID = pop.GetProblemID()
+		resultPop.Population = make([]Individual, len(pop.GetMembers()))
+		resultPop.ProblemID = pop.GetProblemID()
 		for i, ind := range pop.Members {
-			resultPop.population[i] = Individual{
-				genotype: base64.RawStdEncoding.EncodeToString(ind.GetGenotype()),
-				fitness: ind.GetFitness(),
+			resultPop.Population[i] = Individual{
+				Genotype: base64.RawStdEncoding.EncodeToString(ind.GetGenotype()),
+				Fitness: ind.GetFitness(),
 			}
 		}
-		c.SSEvent("results", resultPop)
+		jsonb, _ := json.Marshal(resultPop)
+		_, err = c.Writer.Write(jsonb)
+		if err != nil {
+			log.Error().Msgf("error writing result for %s: %s", problemID, err)
+			break
+		}
+		c.Writer.Flush()
+	
+		log.Info().Msg("wrote over SSE")
+		time.Sleep(5*time.Second)
 	}
 }
 
