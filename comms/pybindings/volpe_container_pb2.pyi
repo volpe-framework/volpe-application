@@ -1,9 +1,25 @@
 import common_pb2 as _common_pb2
+from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Optional as _Optional
+from collections.abc import Iterable as _Iterable, Mapping as _Mapping
+from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class ResultIndividual(_message.Message):
+    __slots__ = ("representation", "fitness")
+    REPRESENTATION_FIELD_NUMBER: _ClassVar[int]
+    FITNESS_FIELD_NUMBER: _ClassVar[int]
+    representation: str
+    fitness: float
+    def __init__(self, representation: _Optional[str] = ..., fitness: _Optional[float] = ...) -> None: ...
+
+class ResultPopulation(_message.Message):
+    __slots__ = ("members",)
+    MEMBERS_FIELD_NUMBER: _ClassVar[int]
+    members: _containers.RepeatedCompositeFieldContainer[ResultIndividual]
+    def __init__(self, members: _Optional[_Iterable[_Union[ResultIndividual, _Mapping]]] = ...) -> None: ...
 
 class HelloRequest(_message.Message):
     __slots__ = ("name",)

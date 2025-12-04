@@ -52,6 +52,15 @@ def mutate_popln(popln: list[np.ndarray]):
             popln[i] = mutate(popln[i])
     return popln
 
+def popListTostring(popln: list[np.ndarray]):
+    indList : list[pb.ResultIndividual] = []
+    for mem in popln:
+        indList.append(
+                pb.ResultIndividual(representation=np.array_str(mem), 
+                                    fitness=fitness(mem))
+                )
+    return pb.ResultPopulation(members=indList)
+
 def bstringToPopln(popln: pbc.Population):
     popList = []
     for memb in popln.members:
@@ -98,6 +107,12 @@ class VolpeGreeterServicer(vp.VolpeContainerServicer):
             return pbc.Population(members=[], problemID="p1")
         popSorted = sorted(self.popln, key=fitness)
         return popListToBytes(popSorted[:request.size])
+    def GetResults(self, request: pb.PopulationSize, context):
+        if self.popln is None:
+            return pbc.Population(members=[], problemID="p1")
+        popSorted = sorted(self.popln, key=fitness)
+        return popListTostring(popSorted[:request.size])
+
     def AdjustPopulationSize(self, request: pb.PopulationSize, context):
         """Missing associated documentation comment in .proto file."""
         targetSize = request.size

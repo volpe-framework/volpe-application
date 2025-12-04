@@ -166,7 +166,7 @@ func (cm *ContainerManager) HandlePopulationEvent(event *volpe.AdjustPopulationM
 	}
 }
 
-func (cm *ContainerManager) RegisterResultListener(problemID string, channel chan *common.Population) error {
+func (cm *ContainerManager) RegisterResultListener(problemID string, channel chan *ccoms.ResultPopulation) error {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
 
@@ -179,7 +179,7 @@ func (cm *ContainerManager) RegisterResultListener(problemID string, channel cha
 	return nil
 }
 
-func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan *common.Population) error {
+func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan *ccoms.ResultPopulation) error {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
 

@@ -22,6 +22,102 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ResultIndividual struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Representation string                 `protobuf:"bytes,1,opt,name=representation,proto3" json:"representation,omitempty"`
+	Fitness        float32                `protobuf:"fixed32,2,opt,name=fitness,proto3" json:"fitness,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ResultIndividual) Reset() {
+	*x = ResultIndividual{}
+	mi := &file_volpe_container_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResultIndividual) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResultIndividual) ProtoMessage() {}
+
+func (x *ResultIndividual) ProtoReflect() protoreflect.Message {
+	mi := &file_volpe_container_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResultIndividual.ProtoReflect.Descriptor instead.
+func (*ResultIndividual) Descriptor() ([]byte, []int) {
+	return file_volpe_container_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *ResultIndividual) GetRepresentation() string {
+	if x != nil {
+		return x.Representation
+	}
+	return ""
+}
+
+func (x *ResultIndividual) GetFitness() float32 {
+	if x != nil {
+		return x.Fitness
+	}
+	return 0
+}
+
+type ResultPopulation struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Members       []*ResultIndividual    `protobuf:"bytes,1,rep,name=members,proto3" json:"members,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResultPopulation) Reset() {
+	*x = ResultPopulation{}
+	mi := &file_volpe_container_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResultPopulation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResultPopulation) ProtoMessage() {}
+
+func (x *ResultPopulation) ProtoReflect() protoreflect.Message {
+	mi := &file_volpe_container_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResultPopulation.ProtoReflect.Descriptor instead.
+func (*ResultPopulation) Descriptor() ([]byte, []int) {
+	return file_volpe_container_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ResultPopulation) GetMembers() []*ResultIndividual {
+	if x != nil {
+		return x.Members
+	}
+	return nil
+}
+
 // The request message containing the user's name.
 type HelloRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -32,7 +128,7 @@ type HelloRequest struct {
 
 func (x *HelloRequest) Reset() {
 	*x = HelloRequest{}
-	mi := &file_volpe_container_proto_msgTypes[0]
+	mi := &file_volpe_container_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -44,7 +140,7 @@ func (x *HelloRequest) String() string {
 func (*HelloRequest) ProtoMessage() {}
 
 func (x *HelloRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_volpe_container_proto_msgTypes[0]
+	mi := &file_volpe_container_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,7 +153,7 @@ func (x *HelloRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HelloRequest.ProtoReflect.Descriptor instead.
 func (*HelloRequest) Descriptor() ([]byte, []int) {
-	return file_volpe_container_proto_rawDescGZIP(), []int{0}
+	return file_volpe_container_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *HelloRequest) GetName() string {
@@ -76,7 +172,7 @@ type Seed struct {
 
 func (x *Seed) Reset() {
 	*x = Seed{}
-	mi := &file_volpe_container_proto_msgTypes[1]
+	mi := &file_volpe_container_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -88,7 +184,7 @@ func (x *Seed) String() string {
 func (*Seed) ProtoMessage() {}
 
 func (x *Seed) ProtoReflect() protoreflect.Message {
-	mi := &file_volpe_container_proto_msgTypes[1]
+	mi := &file_volpe_container_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -101,7 +197,7 @@ func (x *Seed) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Seed.ProtoReflect.Descriptor instead.
 func (*Seed) Descriptor() ([]byte, []int) {
-	return file_volpe_container_proto_rawDescGZIP(), []int{1}
+	return file_volpe_container_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Seed) GetSeed() int32 {
@@ -120,7 +216,7 @@ type PopulationSize struct {
 
 func (x *PopulationSize) Reset() {
 	*x = PopulationSize{}
-	mi := &file_volpe_container_proto_msgTypes[2]
+	mi := &file_volpe_container_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -132,7 +228,7 @@ func (x *PopulationSize) String() string {
 func (*PopulationSize) ProtoMessage() {}
 
 func (x *PopulationSize) ProtoReflect() protoreflect.Message {
-	mi := &file_volpe_container_proto_msgTypes[2]
+	mi := &file_volpe_container_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -145,7 +241,7 @@ func (x *PopulationSize) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PopulationSize.ProtoReflect.Descriptor instead.
 func (*PopulationSize) Descriptor() ([]byte, []int) {
-	return file_volpe_container_proto_rawDescGZIP(), []int{2}
+	return file_volpe_container_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PopulationSize) GetSize() int32 {
@@ -165,7 +261,7 @@ type HelloReply struct {
 
 func (x *HelloReply) Reset() {
 	*x = HelloReply{}
-	mi := &file_volpe_container_proto_msgTypes[3]
+	mi := &file_volpe_container_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -177,7 +273,7 @@ func (x *HelloReply) String() string {
 func (*HelloReply) ProtoMessage() {}
 
 func (x *HelloReply) ProtoReflect() protoreflect.Message {
-	mi := &file_volpe_container_proto_msgTypes[3]
+	mi := &file_volpe_container_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -190,7 +286,7 @@ func (x *HelloReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HelloReply.ProtoReflect.Descriptor instead.
 func (*HelloReply) Descriptor() ([]byte, []int) {
-	return file_volpe_container_proto_rawDescGZIP(), []int{3}
+	return file_volpe_container_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *HelloReply) GetMessage() string {
@@ -210,7 +306,7 @@ type Reply struct {
 
 func (x *Reply) Reset() {
 	*x = Reply{}
-	mi := &file_volpe_container_proto_msgTypes[4]
+	mi := &file_volpe_container_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -222,7 +318,7 @@ func (x *Reply) String() string {
 func (*Reply) ProtoMessage() {}
 
 func (x *Reply) ProtoReflect() protoreflect.Message {
-	mi := &file_volpe_container_proto_msgTypes[4]
+	mi := &file_volpe_container_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -235,7 +331,7 @@ func (x *Reply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reply.ProtoReflect.Descriptor instead.
 func (*Reply) Descriptor() ([]byte, []int) {
-	return file_volpe_container_proto_rawDescGZIP(), []int{4}
+	return file_volpe_container_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Reply) GetSuccess() bool {
@@ -256,7 +352,12 @@ var File_volpe_container_proto protoreflect.FileDescriptor
 
 const file_volpe_container_proto_rawDesc = "" +
 	"\n" +
-	"\x15volpe_container.proto\x1a\fcommon.proto\"\"\n" +
+	"\x15volpe_container.proto\x1a\fcommon.proto\"T\n" +
+	"\x10ResultIndividual\x12&\n" +
+	"\x0erepresentation\x18\x01 \x01(\tR\x0erepresentation\x12\x18\n" +
+	"\afitness\x18\x02 \x01(\x02R\afitness\"?\n" +
+	"\x10ResultPopulation\x12+\n" +
+	"\amembers\x18\x01 \x03(\v2\x11.ResultIndividualR\amembers\"\"\n" +
 	"\fHelloRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"\x1a\n" +
 	"\x04Seed\x12\x12\n" +
@@ -268,12 +369,14 @@ const file_volpe_container_proto_rawDesc = "" +
 	"\amessage\x18\x01 \x01(\tR\amessage\";\n" +
 	"\x05Reply\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage2\xa4\x02\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage2\xd8\x02\n" +
 	"\x0eVolpeContainer\x12(\n" +
 	"\bSayHello\x12\r.HelloRequest\x1a\v.HelloReply\"\x00\x12\x1f\n" +
 	"\fInitFromSeed\x12\x05.Seed\x1a\x06.Reply\"\x00\x12/\n" +
 	"\x16InitFromSeedPopulation\x12\v.Population\x1a\x06.Reply\"\x00\x123\n" +
-	"\x11GetBestPopulation\x12\x0f.PopulationSize\x1a\v.Population\"\x00\x121\n" +
+	"\x11GetBestPopulation\x12\x0f.PopulationSize\x1a\v.Population\"\x00\x122\n" +
+	"\n" +
+	"GetResults\x12\x0f.PopulationSize\x1a\x11.ResultPopulation\"\x00\x121\n" +
 	"\x14AdjustPopulationSize\x12\x0f.PopulationSize\x1a\x06.Reply\"\x00\x12.\n" +
 	"\x11RunForGenerations\x12\x0f.PopulationSize\x1a\x06.Reply\"\x00B\x13Z\x11./comms/containerb\x06proto3"
 
@@ -289,33 +392,38 @@ func file_volpe_container_proto_rawDescGZIP() []byte {
 	return file_volpe_container_proto_rawDescData
 }
 
-var file_volpe_container_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_volpe_container_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_volpe_container_proto_goTypes = []any{
-	(*HelloRequest)(nil),      // 0: HelloRequest
-	(*Seed)(nil),              // 1: Seed
-	(*PopulationSize)(nil),    // 2: PopulationSize
-	(*HelloReply)(nil),        // 3: HelloReply
-	(*Reply)(nil),             // 4: Reply
-	(*common.Population)(nil), // 5: Population
+	(*ResultIndividual)(nil),  // 0: ResultIndividual
+	(*ResultPopulation)(nil),  // 1: ResultPopulation
+	(*HelloRequest)(nil),      // 2: HelloRequest
+	(*Seed)(nil),              // 3: Seed
+	(*PopulationSize)(nil),    // 4: PopulationSize
+	(*HelloReply)(nil),        // 5: HelloReply
+	(*Reply)(nil),             // 6: Reply
+	(*common.Population)(nil), // 7: Population
 }
 var file_volpe_container_proto_depIdxs = []int32{
-	0, // 0: VolpeContainer.SayHello:input_type -> HelloRequest
-	1, // 1: VolpeContainer.InitFromSeed:input_type -> Seed
-	5, // 2: VolpeContainer.InitFromSeedPopulation:input_type -> Population
-	2, // 3: VolpeContainer.GetBestPopulation:input_type -> PopulationSize
-	2, // 4: VolpeContainer.AdjustPopulationSize:input_type -> PopulationSize
-	2, // 5: VolpeContainer.RunForGenerations:input_type -> PopulationSize
-	3, // 6: VolpeContainer.SayHello:output_type -> HelloReply
-	4, // 7: VolpeContainer.InitFromSeed:output_type -> Reply
-	4, // 8: VolpeContainer.InitFromSeedPopulation:output_type -> Reply
-	5, // 9: VolpeContainer.GetBestPopulation:output_type -> Population
-	4, // 10: VolpeContainer.AdjustPopulationSize:output_type -> Reply
-	4, // 11: VolpeContainer.RunForGenerations:output_type -> Reply
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: ResultPopulation.members:type_name -> ResultIndividual
+	2, // 1: VolpeContainer.SayHello:input_type -> HelloRequest
+	3, // 2: VolpeContainer.InitFromSeed:input_type -> Seed
+	7, // 3: VolpeContainer.InitFromSeedPopulation:input_type -> Population
+	4, // 4: VolpeContainer.GetBestPopulation:input_type -> PopulationSize
+	4, // 5: VolpeContainer.GetResults:input_type -> PopulationSize
+	4, // 6: VolpeContainer.AdjustPopulationSize:input_type -> PopulationSize
+	4, // 7: VolpeContainer.RunForGenerations:input_type -> PopulationSize
+	5, // 8: VolpeContainer.SayHello:output_type -> HelloReply
+	6, // 9: VolpeContainer.InitFromSeed:output_type -> Reply
+	6, // 10: VolpeContainer.InitFromSeedPopulation:output_type -> Reply
+	7, // 11: VolpeContainer.GetBestPopulation:output_type -> Population
+	1, // 12: VolpeContainer.GetResults:output_type -> ResultPopulation
+	6, // 13: VolpeContainer.AdjustPopulationSize:output_type -> Reply
+	6, // 14: VolpeContainer.RunForGenerations:output_type -> Reply
+	8, // [8:15] is the sub-list for method output_type
+	1, // [1:8] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_volpe_container_proto_init() }
@@ -329,7 +437,7 @@ func file_volpe_container_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_volpe_container_proto_rawDesc), len(file_volpe_container_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

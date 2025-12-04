@@ -21,7 +21,7 @@ type ProblemContainer struct {
 	//	containerPort uint16
 	hostPort    uint16
 	commsClient ccomms.VolpeContainerClient
-	resultChannels map[chan *comms.Population]bool
+	resultChannels map[chan *ccomms.ResultPopulation]bool
 	rcMut sync.Mutex
 }
 
@@ -35,7 +35,7 @@ func NewProblemContainer(problemID string, imagePath string, worker bool) (*Prob
 	pc := new(ProblemContainer)
 	pc.problemID = problemID
 	pc.containerName = genContainerName(problemID)
-	pc.resultChannels = make(map[chan *comms.Population]bool)
+	pc.resultChannels = make(map[chan *ccomms.ResultPopulation]bool)
 
 	hostPort, err := runImage(imagePath, pc.containerName, DEFAULT_CONTAINER_PORT)
 	if err != nil {
@@ -66,14 +66,14 @@ func (pc *ProblemContainer) GetContainerName() string {
 	return pc.containerName
 }
 
-func (pc *ProblemContainer) RegisterResultChannel(channel chan *comms.Population) {
+func (pc *ProblemContainer) RegisterResultChannel(channel chan *ccomms.ResultPopulation) {
 	pc.rcMut.Lock()
 	defer pc.rcMut.Unlock()
 
 	pc.resultChannels[channel] = true
 }
 
-func (pc *ProblemContainer) DeRegisterResultChannel(channel chan *comms.Population) {
+func (pc *ProblemContainer) DeRegisterResultChannel(channel chan *ccomms.ResultPopulation) {
 	pc.rcMut.Lock()
 	defer pc.rcMut.Unlock()
 
@@ -118,7 +118,7 @@ func (pc *ProblemContainer) sendResultOnce() {
 	pc.rcMut.Lock()
 	defer pc.rcMut.Unlock()
 
-	result, err := pc.commsClient.GetBestPopulation(context.Background(), &ccomms.PopulationSize{Size: 10})
+	result, err := pc.commsClient.GetResults(context.Background(), &ccomms.PopulationSize{Size: 10})
 	if err != nil {
 		log.Err(err).Caller().Msgf("fetching best popln for %s failed", pc.problemID)
 	}

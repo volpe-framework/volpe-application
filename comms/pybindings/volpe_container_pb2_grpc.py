@@ -56,6 +56,11 @@ class VolpeContainerStub(object):
                 request_serializer=volpe__container__pb2.PopulationSize.SerializeToString,
                 response_deserializer=common__pb2.Population.FromString,
                 _registered_method=True)
+        self.GetResults = channel.unary_unary(
+                '/VolpeContainer/GetResults',
+                request_serializer=volpe__container__pb2.PopulationSize.SerializeToString,
+                response_deserializer=volpe__container__pb2.ResultPopulation.FromString,
+                _registered_method=True)
         self.AdjustPopulationSize = channel.unary_unary(
                 '/VolpeContainer/AdjustPopulationSize',
                 request_serializer=volpe__container__pb2.PopulationSize.SerializeToString,
@@ -97,6 +102,12 @@ class VolpeContainerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetResults(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def AdjustPopulationSize(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -131,6 +142,11 @@ def add_VolpeContainerServicer_to_server(servicer, server):
                     servicer.GetBestPopulation,
                     request_deserializer=volpe__container__pb2.PopulationSize.FromString,
                     response_serializer=common__pb2.Population.SerializeToString,
+            ),
+            'GetResults': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetResults,
+                    request_deserializer=volpe__container__pb2.PopulationSize.FromString,
+                    response_serializer=volpe__container__pb2.ResultPopulation.SerializeToString,
             ),
             'AdjustPopulationSize': grpc.unary_unary_rpc_method_handler(
                     servicer.AdjustPopulationSize,
@@ -252,6 +268,33 @@ class VolpeContainer(object):
             '/VolpeContainer/GetBestPopulation',
             volpe__container__pb2.PopulationSize.SerializeToString,
             common__pb2.Population.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetResults(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/VolpeContainer/GetResults',
+            volpe__container__pb2.PopulationSize.SerializeToString,
+            volpe__container__pb2.ResultPopulation.FromString,
             options,
             channel_credentials,
             insecure,

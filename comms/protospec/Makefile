@@ -1,7 +1,7 @@
 
-.PHONY: all common container_comms volpe_comms api
+.PHONY: all common container_comms volpe_comms
 
-all: container_comms volpe_comms api
+all: container_comms volpe_comms
 
 common: common.proto
 	protoc -I=. --go_out=../common --go_opt=paths=source_relative \
@@ -23,11 +23,4 @@ volpe_comms: volpe.proto common
 	protoc -I=. --go_out=../volpe --go_opt=paths=source_relative \
 	--go-grpc_out=../volpe --go-grpc_opt=paths=source_relative \
 	volpe.proto
-
-api: api.proto common
-	protoc -I=. --go_out=../api --go_opt=paths=source_relative \
-	--go-grpc_out=../api --go-grpc_opt=paths=source_relative \
-	api.proto
-
-
 

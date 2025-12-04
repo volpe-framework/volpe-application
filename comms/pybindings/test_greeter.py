@@ -17,3 +17,7 @@ res = serv.GetBestPopulation(gt.pb.PopulationSize(size=10), None)
 
 for mem in res.members:
     print(mem.fitness)
+
+result = serv.GetResults(gt.pb.PopulationSize(size=10), None)
+for mem in result.members:
+    print(mem.representation, mem.fitness)

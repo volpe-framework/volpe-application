@@ -24,6 +24,7 @@ const (
 	VolpeContainer_InitFromSeed_FullMethodName           = "/VolpeContainer/InitFromSeed"
 	VolpeContainer_InitFromSeedPopulation_FullMethodName = "/VolpeContainer/InitFromSeedPopulation"
 	VolpeContainer_GetBestPopulation_FullMethodName      = "/VolpeContainer/GetBestPopulation"
+	VolpeContainer_GetResults_FullMethodName             = "/VolpeContainer/GetResults"
 	VolpeContainer_AdjustPopulationSize_FullMethodName   = "/VolpeContainer/AdjustPopulationSize"
 	VolpeContainer_RunForGenerations_FullMethodName      = "/VolpeContainer/RunForGenerations"
 )
@@ -39,6 +40,7 @@ type VolpeContainerClient interface {
 	InitFromSeed(ctx context.Context, in *Seed, opts ...grpc.CallOption) (*Reply, error)
 	InitFromSeedPopulation(ctx context.Context, in *common.Population, opts ...grpc.CallOption) (*Reply, error)
 	GetBestPopulation(ctx context.Context, in *PopulationSize, opts ...grpc.CallOption) (*common.Population, error)
+	GetResults(ctx context.Context, in *PopulationSize, opts ...grpc.CallOption) (*ResultPopulation, error)
 	AdjustPopulationSize(ctx context.Context, in *PopulationSize, opts ...grpc.CallOption) (*Reply, error)
 	RunForGenerations(ctx context.Context, in *PopulationSize, opts ...grpc.CallOption) (*Reply, error)
 }
@@ -91,6 +93,16 @@ func (c *volpeContainerClient) GetBestPopulation(ctx context.Context, in *Popula
 	return out, nil
 }
 
+func (c *volpeContainerClient) GetResults(ctx context.Context, in *PopulationSize, opts ...grpc.CallOption) (*ResultPopulation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResultPopulation)
+	err := c.cc.Invoke(ctx, VolpeContainer_GetResults_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *volpeContainerClient) AdjustPopulationSize(ctx context.Context, in *PopulationSize, opts ...grpc.CallOption) (*Reply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Reply)
@@ -122,6 +134,7 @@ type VolpeContainerServer interface {
 	InitFromSeed(context.Context, *Seed) (*Reply, error)
 	InitFromSeedPopulation(context.Context, *common.Population) (*Reply, error)
 	GetBestPopulation(context.Context, *PopulationSize) (*common.Population, error)
+	GetResults(context.Context, *PopulationSize) (*ResultPopulation, error)
 	AdjustPopulationSize(context.Context, *PopulationSize) (*Reply, error)
 	RunForGenerations(context.Context, *PopulationSize) (*Reply, error)
 	mustEmbedUnimplementedVolpeContainerServer()
@@ -145,6 +158,9 @@ func (UnimplementedVolpeContainerServer) InitFromSeedPopulation(context.Context,
 }
 func (UnimplementedVolpeContainerServer) GetBestPopulation(context.Context, *PopulationSize) (*common.Population, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBestPopulation not implemented")
+}
+func (UnimplementedVolpeContainerServer) GetResults(context.Context, *PopulationSize) (*ResultPopulation, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetResults not implemented")
 }
 func (UnimplementedVolpeContainerServer) AdjustPopulationSize(context.Context, *PopulationSize) (*Reply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AdjustPopulationSize not implemented")
@@ -245,6 +261,24 @@ func _VolpeContainer_GetBestPopulation_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VolpeContainer_GetResults_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PopulationSize)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolpeContainerServer).GetResults(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VolpeContainer_GetResults_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolpeContainerServer).GetResults(ctx, req.(*PopulationSize))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _VolpeContainer_AdjustPopulationSize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PopulationSize)
 	if err := dec(in); err != nil {
@@ -303,6 +337,10 @@ var VolpeContainer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetBestPopulation",
 			Handler:    _VolpeContainer_GetBestPopulation_Handler,
+		},
+		{
+			MethodName: "GetResults",
+			Handler:    _VolpeContainer_GetResults_Handler,
 		},
 		{
 			MethodName: "AdjustPopulationSize",

@@ -14,9 +14,20 @@ service VolpeContainer {
 
   rpc GetBestPopulation (PopulationSize) returns (Population) {}
 
+  rpc GetResults (PopulationSize) returns (ResultPopulation) {}
+
   rpc AdjustPopulationSize (PopulationSize) returns (Reply) {}
 
   rpc RunForGenerations (PopulationSize) returns (Reply) {}
+}
+
+message ResultIndividual {
+  string representation = 1;
+  float fitness = 2;
+}
+
+message ResultPopulation {
+  repeated ResultIndividual members = 1;
 }
 
 // The request message containing the user's name.

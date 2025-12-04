@@ -4,12 +4,13 @@ import (
 	"io"
 	"time"
 	"os"
-	"volpe-framework/comms/common"
+	// "volpe-framework/comms/common"
+	ccomms "volpe-framework/comms/container"
+
 	contman "volpe-framework/container_mgr"
 	"volpe-framework/master/model"
 	"volpe-framework/scheduler"
 
-	"encoding/base64"
 	"encoding/json"
 
 	"github.com/gin-gonic/gin"
@@ -125,29 +126,13 @@ func (va *VolpeAPI) StreamResults (c *gin.Context) {
 
 	problemID := c.Param("id")
 
-	channel := make(chan *common.Population)
+	channel := make(chan *ccomms.ResultPopulation)
 	err := va.contman.RegisterResultListener(problemID, channel)
 	if err != nil {
 		log.Error().Caller().Msgf("error listening to pid %s: %s", problemID, err.Error())
 	}
 
-	log.Info().Msg("registered listener")
-
 	defer va.contman.RemoveResultListener(problemID, channel)
-
-	// sendChan := make(chan *ProblemResult, 10)
-
-	// c.Stream(func(w io.Writer) bool {
-	// 	msg, ok := <- sendChan
-	// 	if ok {
-	// 		log.Info().Msg("sending msg")
-	// 		w.Write([]byte("message:"+ msg.ProblemID + "\n\n"))
-	// 		return true
-	// 	}
-	// 	return false
-	// })
-
-	log.Info().Msg("created stream")
 
 	for {
 		pop, ok := <- channel
@@ -157,10 +142,10 @@ func (va *VolpeAPI) StreamResults (c *gin.Context) {
 		}
 		resultPop := ProblemResult{}
 		resultPop.Population = make([]Individual, len(pop.GetMembers()))
-		resultPop.ProblemID = pop.GetProblemID()
+		resultPop.ProblemID = problemID
 		for i, ind := range pop.Members {
 			resultPop.Population[i] = Individual{
-				Genotype: base64.RawStdEncoding.EncodeToString(ind.GetGenotype()),
+				Genotype: ind.GetRepresentation(),
 				Fitness: ind.GetFitness(),
 			}
 		}
@@ -172,7 +157,6 @@ func (va *VolpeAPI) StreamResults (c *gin.Context) {
 		}
 		c.Writer.Flush()
 	
-		log.Info().Msg("wrote over SSE")
 		time.Sleep(5*time.Second)
 	}
 }
