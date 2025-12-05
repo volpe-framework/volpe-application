@@ -59,7 +59,7 @@ func (ss *StaticScheduler) FillSchedule(sched Schedule) error {
 	for _, p := range ss.problems {
 		for _, w := range ss.workers {
 			// TODO: adjust default population size?
-			sched.Set(w, p, 100) 
+			sched.Set(w, p, 1000) 
 		}
 	}
 	return nil
