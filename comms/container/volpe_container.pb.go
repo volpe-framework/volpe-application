@@ -369,12 +369,13 @@ const file_volpe_container_proto_rawDesc = "" +
 	"\amessage\x18\x01 \x01(\tR\amessage\";\n" +
 	"\x05Reply\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage2\xd8\x02\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage2\x85\x03\n" +
 	"\x0eVolpeContainer\x12(\n" +
 	"\bSayHello\x12\r.HelloRequest\x1a\v.HelloReply\"\x00\x12\x1f\n" +
 	"\fInitFromSeed\x12\x05.Seed\x1a\x06.Reply\"\x00\x12/\n" +
 	"\x16InitFromSeedPopulation\x12\v.Population\x1a\x06.Reply\"\x00\x123\n" +
-	"\x11GetBestPopulation\x12\x0f.PopulationSize\x1a\v.Population\"\x00\x122\n" +
+	"\x11GetBestPopulation\x12\x0f.PopulationSize\x1a\v.Population\"\x00\x12+\n" +
+	"\tGetRandom\x12\x0f.PopulationSize\x1a\v.Population\"\x00\x122\n" +
 	"\n" +
 	"GetResults\x12\x0f.PopulationSize\x1a\x11.ResultPopulation\"\x00\x121\n" +
 	"\x14AdjustPopulationSize\x12\x0f.PopulationSize\x1a\x06.Reply\"\x00\x12.\n" +
@@ -409,18 +410,20 @@ var file_volpe_container_proto_depIdxs = []int32{
 	3, // 2: VolpeContainer.InitFromSeed:input_type -> Seed
 	7, // 3: VolpeContainer.InitFromSeedPopulation:input_type -> Population
 	4, // 4: VolpeContainer.GetBestPopulation:input_type -> PopulationSize
-	4, // 5: VolpeContainer.GetResults:input_type -> PopulationSize
-	4, // 6: VolpeContainer.AdjustPopulationSize:input_type -> PopulationSize
-	4, // 7: VolpeContainer.RunForGenerations:input_type -> PopulationSize
-	5, // 8: VolpeContainer.SayHello:output_type -> HelloReply
-	6, // 9: VolpeContainer.InitFromSeed:output_type -> Reply
-	6, // 10: VolpeContainer.InitFromSeedPopulation:output_type -> Reply
-	7, // 11: VolpeContainer.GetBestPopulation:output_type -> Population
-	1, // 12: VolpeContainer.GetResults:output_type -> ResultPopulation
-	6, // 13: VolpeContainer.AdjustPopulationSize:output_type -> Reply
-	6, // 14: VolpeContainer.RunForGenerations:output_type -> Reply
-	8, // [8:15] is the sub-list for method output_type
-	1, // [1:8] is the sub-list for method input_type
+	4, // 5: VolpeContainer.GetRandom:input_type -> PopulationSize
+	4, // 6: VolpeContainer.GetResults:input_type -> PopulationSize
+	4, // 7: VolpeContainer.AdjustPopulationSize:input_type -> PopulationSize
+	4, // 8: VolpeContainer.RunForGenerations:input_type -> PopulationSize
+	5, // 9: VolpeContainer.SayHello:output_type -> HelloReply
+	6, // 10: VolpeContainer.InitFromSeed:output_type -> Reply
+	6, // 11: VolpeContainer.InitFromSeedPopulation:output_type -> Reply
+	7, // 12: VolpeContainer.GetBestPopulation:output_type -> Population
+	7, // 13: VolpeContainer.GetRandom:output_type -> Population
+	1, // 14: VolpeContainer.GetResults:output_type -> ResultPopulation
+	6, // 15: VolpeContainer.AdjustPopulationSize:output_type -> Reply
+	6, // 16: VolpeContainer.RunForGenerations:output_type -> Reply
+	9, // [9:17] is the sub-list for method output_type
+	1, // [1:9] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name

@@ -95,7 +95,7 @@ func (cm *ContainerManager) GetSubpopulations() ([]*common.Population, error) {
 	return pops, nil
 }
 
-func (cm *ContainerManager) GetSubpopulation(problemID string) (*common.Population, error) {
+func (cm *ContainerManager) GetRandomSubpopulation(problemID string) (*common.Population, error) {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
 
@@ -104,7 +104,7 @@ func (cm *ContainerManager) GetSubpopulation(problemID string) (*common.Populati
 		log.Error().Caller().Msgf("unknown problemID %s", problemID)
 		return nil, errors.New("unknown problemID")
 	}
-	return container.GetSubpopulation()
+	return container.GetRandomSubpopulation()
 }
 
 // func (cm *ContainerManager) HandlePopulationEvents(eventChannel chan *volpe.AdjustPopulationMessage) {

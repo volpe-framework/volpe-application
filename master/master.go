@@ -108,7 +108,7 @@ func applySchedule(master *vcomms.MasterComms, cman *cm.ContainerManager, sched 
 				Size: val,
 			}
 			if val != 0 {
-				subpop, err := cman.GetSubpopulation(problemID)
+				subpop, err := cman.GetRandomSubpopulation(problemID)
 				if err != nil {
 					log.Error().Caller().Msgf("error getting subpop wID %s pID %s to update schedule: %s", workerID, problemID, err.Error())
 					return

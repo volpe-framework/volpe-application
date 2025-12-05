@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 import common_pb2 as common__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15volpe_container.proto\x1a\x0c\x63ommon.proto\";\n\x10ResultIndividual\x12\x16\n\x0erepresentation\x18\x01 \x01(\t\x12\x0f\n\x07\x66itness\x18\x02 \x01(\x02\"6\n\x10ResultPopulation\x12\"\n\x07members\x18\x01 \x03(\x0b\x32\x11.ResultIndividual\"\x1c\n\x0cHelloRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x14\n\x04Seed\x12\x0c\n\x04seed\x18\x01 \x01(\x05\"\x1e\n\x0ePopulationSize\x12\x0c\n\x04size\x18\x01 \x01(\x05\"\x1d\n\nHelloReply\x12\x0f\n\x07message\x18\x01 \x01(\t\")\n\x05Reply\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2\xd8\x02\n\x0eVolpeContainer\x12(\n\x08SayHello\x12\r.HelloRequest\x1a\x0b.HelloReply\"\x00\x12\x1f\n\x0cInitFromSeed\x12\x05.Seed\x1a\x06.Reply\"\x00\x12/\n\x16InitFromSeedPopulation\x12\x0b.Population\x1a\x06.Reply\"\x00\x12\x33\n\x11GetBestPopulation\x12\x0f.PopulationSize\x1a\x0b.Population\"\x00\x12\x32\n\nGetResults\x12\x0f.PopulationSize\x1a\x11.ResultPopulation\"\x00\x12\x31\n\x14\x41\x64justPopulationSize\x12\x0f.PopulationSize\x1a\x06.Reply\"\x00\x12.\n\x11RunForGenerations\x12\x0f.PopulationSize\x1a\x06.Reply\"\x00\x42\x13Z\x11./comms/containerb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15volpe_container.proto\x1a\x0c\x63ommon.proto\";\n\x10ResultIndividual\x12\x16\n\x0erepresentation\x18\x01 \x01(\t\x12\x0f\n\x07\x66itness\x18\x02 \x01(\x02\"6\n\x10ResultPopulation\x12\"\n\x07members\x18\x01 \x03(\x0b\x32\x11.ResultIndividual\"\x1c\n\x0cHelloRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x14\n\x04Seed\x12\x0c\n\x04seed\x18\x01 \x01(\x05\"\x1e\n\x0ePopulationSize\x12\x0c\n\x04size\x18\x01 \x01(\x05\"\x1d\n\nHelloReply\x12\x0f\n\x07message\x18\x01 \x01(\t\")\n\x05Reply\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t2\x85\x03\n\x0eVolpeContainer\x12(\n\x08SayHello\x12\r.HelloRequest\x1a\x0b.HelloReply\"\x00\x12\x1f\n\x0cInitFromSeed\x12\x05.Seed\x1a\x06.Reply\"\x00\x12/\n\x16InitFromSeedPopulation\x12\x0b.Population\x1a\x06.Reply\"\x00\x12\x33\n\x11GetBestPopulation\x12\x0f.PopulationSize\x1a\x0b.Population\"\x00\x12+\n\tGetRandom\x12\x0f.PopulationSize\x1a\x0b.Population\"\x00\x12\x32\n\nGetResults\x12\x0f.PopulationSize\x1a\x11.ResultPopulation\"\x00\x12\x31\n\x14\x41\x64justPopulationSize\x12\x0f.PopulationSize\x1a\x06.Reply\"\x00\x12.\n\x11RunForGenerations\x12\x0f.PopulationSize\x1a\x06.Reply\"\x00\x42\x13Z\x11./comms/containerb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -48,5 +48,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_REPLY']._serialized_start=271
   _globals['_REPLY']._serialized_end=312
   _globals['_VOLPECONTAINER']._serialized_start=315
-  _globals['_VOLPECONTAINER']._serialized_end=659
+  _globals['_VOLPECONTAINER']._serialized_end=704
 # @@protoc_insertion_point(module_scope)

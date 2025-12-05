@@ -80,6 +80,17 @@ func (pc *ProblemContainer) DeRegisterResultChannel(channel chan *ccomms.ResultP
 	delete(pc.resultChannels, channel)
 }
 
+func (pc *ProblemContainer) GetRandomSubpopulation() (*comms.Population, error) {
+	// TODO: best population size config
+	pop, err := pc.commsClient.GetRandom(context.Background(), &ccomms.PopulationSize{Size: 10})
+	if err != nil {
+		log.Error().Caller().Msg(err.Error())
+		return nil, err
+	}
+	pop.ProblemID = &pc.problemID
+	return pop, nil
+}
+
 func (pc *ProblemContainer) GetSubpopulation() (*comms.Population, error) {
 	// TODO: best population size config
 	pop, err := pc.commsClient.GetBestPopulation(context.Background(), &ccomms.PopulationSize{Size: 10})

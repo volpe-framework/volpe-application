@@ -14,5 +14,7 @@ func RunAPI(port int, api *VolpeAPI) {
 	r.PUT("/problems/:id/start", api.StartProblem)
 	r.Any("/problems/:id/abort", api.AbortProblem)
 
+	r.Static("/static", "public/")
+
 	go r.Run(fmt.Sprintf("0.0.0.0:%d", port))
 }

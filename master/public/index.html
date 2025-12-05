@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VolPE: Volunteer Platform for Evolutionary Computing</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js for live plotting -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- Configure Tailwind to use Inter font and simple theming -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#1d4ed8', // Blue 700
+                        secondary: '#f97316', // Orange 600
+                        background: '#f8fafc', // Slate 50
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for the results area */
+        #results-area {
+            scrollbar-width: thin;
+            scrollbar-color: #94a3b8 #f1f5f9;
+        }
+        #results-area::-webkit-scrollbar {
+            width: 8px;
+        }
+        #results-area::-webkit-scrollbar-thumb {
+            background-color: #94a3b8;
+            border-radius: 4px;
+        }
+        #results-area::-webkit-scrollbar-track {
+            background-color: #f1f5f9;
+        }
+        canvas {
+            max-height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-background text-gray-800 font-sans min-h-screen p-4 sm:p-8">
+
+    <div class="max-w-4xl mx-auto space-y-8">
+        <!-- Header -->
+        <header class="text-center p-6 bg-white shadow-lg rounded-xl">
+            <h1 class="text-4xl font-extrabold text-primary tracking-tight">
+                VolPE: <span class="text-secondary">Volunteer Platform for Evolutionary Computing</span>
+            </h1>
+            <p class="mt-2 text-gray-600 text-lg">Manage, Run, and Stream Evolutionary Problems</p>
+        </header>
+
+        <!-- Backend Endpoint Configuration -->
+        <section class="p-6 bg-white shadow-lg rounded-xl">
+            <h2 class="text-2xl font-semibold mb-4 border-b pb-2 text-gray-700">1. Backend Endpoint</h2>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                <label for="backend-endpoint" class="font-medium">API Base URL:</label>
+                <input type="text" id="backend-endpoint" value="http://localhost:8000"
+                       class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150 shadow-sm"
+                       placeholder="e.g., http://localhost:8000">
+            </div>
+            <p class="text-sm text-gray-500 mt-2">All API calls will be prefixed with this URL.</p>
+        </section>
+
+        <!-- Problem Management and Actions -->
+        <!-- Now only 2 columns: Add Problem (2) and Execute Problem (3) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+            <!-- Add Problem (2) -->
+            <section class="p-6 bg-white shadow-lg rounded-xl space-y-4">
+                <h2 class="text-2xl font-semibold border-b pb-2 text-gray-700">2. Add New Problem</h2>
+                <div>
+                    <label for="problem-name-add" class="block text-sm font-medium text-gray-700 mb-1">Problem Name</label>
+                    <input type="text" id="problem-name-add" placeholder="e.g., TSP-100"
+                           class="w-full p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary shadow-sm">
+                </div>
+                <div>
+                    <label for="problem-file" class="block text-sm font-medium text-gray-700 mb-1">Problem (.tar file)</label>
+                    <input type="file" id="problem-file" accept=".tar"
+                           class="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-secondary/10 file:text-secondary
+                                hover:file:bg-secondary/20 cursor-pointer">
+                </div>
+                <button onclick="addProblem()"
+                        class="w-full py-2 px-4 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition duration-150 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                    Add Problem
+                </button>
+            </section>
+
+            <!-- Execute Problem (3) - Combined Start and Run -->
+            <section class="p-6 bg-white shadow-lg rounded-xl space-y-4">
+                <h2 class="text-2xl font-semibold border-b pb-2 text-gray-700">3. Start/Run Problem Execution</h2>
+                <div>
+                    <label for="problem-name-start" class="block text-sm font-medium text-gray-700 mb-1">Problem Name</label>
+                    <input type="text" id="problem-name-start" placeholder="e.g., TSP-100"
+                           class="w-full p-2 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary shadow-sm">
+                </div>
+                <button onclick="startProblem()"
+                        class="w-full py-2 px-4 bg-secondary text-white font-bold rounded-lg hover:bg-secondary/90 transition duration-150 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                    Start/Run Problem (PUT /start)
+                </button>
+                <p class="text-sm text-gray-500 pt-1">Triggers the execution of the problem, whether for volunteer work or a local test run.</p>
+            </section>
+        </div>
+
+        <!-- Stream Results (4) -->
+        <section class="p-6 bg-white shadow-lg rounded-xl space-y-4">
+            <h2 class="text-2xl font-semibold mb-4 border-b pb-2 text-gray-700">4. Stream Results (SSE & Live Plot)</h2>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                <label for="problem-name-stream" class="font-medium whitespace-nowrap">Problem Name:</label>
+                <input type="text" id="problem-name-stream" placeholder="e.g., TSP-100"
+                       class="w-full sm:w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary shadow-sm">
+                <button onclick="streamResults()" id="stream-button"
+                        class="w-full sm:w-auto py-2 px-4 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition duration-150 shadow-md hover:shadow-lg">
+                    Connect / Start Stream
+                </button>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Plot Area & Download Button -->
+                <div class="lg:col-span-1 p-3 bg-gray-50 rounded-xl border border-gray-200 shadow-inner">
+                    <h3 class="text-sm font-medium text-gray-700 mb-2">Live Fitness Trend (Last 30 Points):</h3>
+                    <div class="w-full h-64">
+                        <canvas id="fitnessChart"></canvas>
+                    </div>
+                    <button onclick="downloadCSV()" id="download-csv-button"
+                            class="mt-4 w-full py-2 px-4 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition duration-150 shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            disabled>
+                        Download Results (CSV)
+                    </button>
+                </div>
+                
+                <!-- Raw Output Area -->
+                <div class="lg:col-span-1">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Streaming Output (Updates):</p>
+                    <pre id="results-area"
+                         class="w-full h-64 bg-gray-900 text-green-300 p-3 rounded-xl overflow-y-scroll text-sm border border-gray-700 font-mono shadow-inner">
+                        Awaiting connection...
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Message Box for Alerts (No alert() allowed) -->
+    <div id="message-box" class="fixed bottom-4 right-4 z-50 transition-all duration-300 ease-out transform translate-y-20 opacity-0">
+        <div class="bg-red-500 text-white p-4 rounded-lg shadow-xl flex items-center space-x-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.332 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <span id="message-text"></span>
+        </div>
+    </div>
+
+
+    <script>
+        let es = null; // Global EventSource instance for SSE
+        let isStreaming = false;
+        let storedResults = []; // Array to store {timestamp, fitness, genotype, problemID}
+        let lastLogTime = 0;
+        let chartInstance = null; // Chart.js instance
+        const LOG_INTERVAL_MS = 30000; // 30 seconds
+
+        // --- Helper Function for UI Messages ---
+        function showMessage(text, isError = true) {
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+
+            messageText.textContent = text;
+            messageBox.className = `fixed bottom-4 right-4 z-50 transition-all duration-300 ease-out transform ${isError ? 'bg-red-500' : 'bg-blue-500'} text-white p-4 rounded-lg shadow-xl flex items-center space-x-3 translate-y-0 opacity-100`;
+
+            setTimeout(() => {
+                messageBox.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function getBaseUrl() {
+            let url = document.getElementById('backend-endpoint').value;
+            // Ensure the URL ends without a trailing slash for clean endpoint concatenation
+            return url.replace(/\/+$/, "");
+        }
+
+        // --- 2. Add Problem ---
+        async function addProblem() {
+            const problemName = document.getElementById('problem-name-add').value.trim();
+            const fileInput = document.getElementById('problem-file');
+            const file = fileInput.files[0];
+            const baseUrl = getBaseUrl();
+
+            if (!problemName) {
+                return showMessage("Error: Please specify a Problem Name.");
+            }
+            if (!file) {
+                return showMessage("Error: Please select a .tar file.");
+            }
+
+            // 1. Construct the target URL: ENDPOINT/problems/:id (where :id is problemName)
+            const targetUrl = `${baseUrl}/problems/${encodeURIComponent(problemName)}`;
+
+            // 2. Prepare FormData
+            const formData = new FormData();
+
+            // 2a. Add the 'metadata' field as a JSON string
+            const metadata = JSON.stringify({ problemID: problemName });
+            formData.append('metadata', metadata);
+
+            // 2b. Add the 'image' field with the file (based on curl example)
+            formData.append('image', file, file.name);
+
+            console.log(`[ACTION] Uploading problem: ${problemName} to ${targetUrl}`);
+
+            // Fetch implementation with error handling
+            try {
+                const response = await fetch(targetUrl, {
+                    method: 'POST',
+                    body: formData, // fetch automatically sets Content-Type: multipart/form-data
+                });
+
+                // The user specified expected status code is 200
+                if (response.ok && response.status === 200) {
+                    showMessage(`Success! Problem '${problemName}' uploaded and registered.`, false);
+                    // Clear input fields after success
+                    document.getElementById('problem-name-add').value = '';
+                    fileInput.value = ''; // Clear file input
+                } else {
+                    // Attempt to parse JSON error message if available
+                    let errorDetail = 'Unknown error occurred.';
+                    try {
+                        const errorResult = await response.json();
+                        errorDetail = errorResult.detail || errorResult.message || `Status: ${response.status}`;
+                    } catch (e) {
+                        errorDetail = `Request failed with status: ${response.status} ${response.statusText}`;
+                    }
+                    showMessage(`Upload failed for '${problemName}': ${errorDetail}`);
+                }
+            } catch (error) {
+                console.error("Fetch error during problem upload:", error);
+                showMessage(`Network error: Could not reach the server at ${baseUrl}.`);
+            }
+        }
+
+        // --- 3. Start Problem (Now handles both Start and Run) ---
+        async function startProblem() {
+            // This function is now called by the single combined button
+            const problemName = document.getElementById('problem-name-start').value.trim();
+            const baseUrl = getBaseUrl();
+
+            if (!problemName) {
+                return showMessage("Error: Please specify a Problem Name to execute (start/run).");
+            }
+
+            // 1. Construct the target URL: ENDPOINT/problems/:id/start
+            const targetUrl = `${baseUrl}/problems/${encodeURIComponent(problemName)}/start`;
+
+            console.log(`[ACTION] Executing problem: ${problemName} via PUT to ${targetUrl}`);
+
+            try {
+                const response = await fetch(targetUrl, {
+                    method: 'PUT',
+                    // No body is required
+                });
+
+                if (response.ok) {
+                    // Assuming success status in the 200-299 range (e.g., 200 OK or 202 Accepted)
+                    showMessage(`Success! Execution (start/run) for problem '${problemName}' has been triggered.`, false);
+                    document.getElementById('problem-name-start').value = ''; // Clear input
+                } else {
+                    // Handle API errors
+                    let errorDetail = 'Unknown error occurred.';
+                    try {
+                        const errorResult = await response.json();
+                        errorDetail = errorResult.detail || errorResult.message || `Status: ${response.status}`;
+                    } catch (e) {
+                        errorDetail = `Request failed with status: ${response.status} ${response.statusText}`;
+                    }
+                    showMessage(`Failed to execute problem '${problemName}': ${errorDetail}`);
+                }
+            } catch (error) {
+                console.error("Fetch error during problem execution:", error);
+                showMessage(`Network error: Could not reach the server at ${baseUrl}.`);
+            }
+        }
+
+        // --- Chart Management ---
+        function initChart() {
+            const ctx = document.getElementById('fitnessChart').getContext('2d');
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [], // Timestamps
+                    datasets: [{
+                        label: 'Best Fitness',
+                        data: [], // Fitness values
+                        borderColor: 'rgb(249, 115, 22)', // secondary orange
+                        backgroundColor: 'rgba(249, 115, 22, 0.2)',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Best Fitness Value'
+                            },
+                            beginAtZero: false
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            },
+                            // Display only time for better readability
+                            ticks: {
+                                callback: function(val, index) {
+                                    const fullLabel = this.getLabelForValue(val);
+                                    if (fullLabel) {
+                                        return fullLabel.substring(11, 19); // HH:MM:SS
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => items[0].label.substring(11, 19),
+                                label: (item) => `Fitness: ${item.parsed.y.toFixed(4)}`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart(timestamp, fitness) {
+            if (chartInstance) {
+                // Keep only the last 30 data points for performance/readability
+                const maxDataPoints = 30;
+                
+                chartInstance.data.labels.push(timestamp);
+                chartInstance.data.datasets[0].data.push(fitness);
+
+                if (chartInstance.data.labels.length > maxDataPoints) {
+                    chartInstance.data.labels.shift();
+                    chartInstance.data.datasets[0].data.shift();
+                }
+
+                chartInstance.update();
+            }
+        }
+
+        // --- Download CSV Function ---
+        function downloadCSV() {
+            if (storedResults.length === 0) {
+                return showMessage("No data stored yet to download.", true);
+            }
+
+            const problemName = storedResults[0].problemID || 'results';
+
+            // Define CSV headers
+            const headers = ["Timestamp (ISO)", "Problem ID", "Fitness", "Genotype"];
+            
+            // Create rows
+            const rows = storedResults.map(item => [
+                `"${item.timestamp}"`,
+                `"${item.problemID}"`,
+                item.fitness, // Keep as number
+                `"${item.genotype.replace(/"/g, '""')}"` // Handle quotes in genotype
+            ]);
+
+            // Combine headers and rows
+            let csvContent = headers.join(",") + "\n";
+            rows.forEach(row => {
+                csvContent += row.join(",") + "\n";
+            });
+
+            // Create a Blob and download link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${problemName}_evolution_results_${new Date().toISOString().slice(0, 10)}.csv`);
+            
+            // Programmatically click the link to trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            showMessage(`Downloaded ${storedResults.length} data points to CSV.`, false);
+        }
+
+        // --- 4. Stream Results (SSE - EventSource) ---
+        function streamResults() {
+            const problemName = document.getElementById('problem-name-stream').value.trim();
+            const baseUrl = getBaseUrl();
+            const resultsArea = document.getElementById('results-area');
+            const streamButton = document.getElementById('stream-button');
+
+            if (!problemName) {
+                return showMessage("Error: Please specify a Problem Name for streaming.");
+            }
+
+            if (isStreaming) {
+                // Stop streaming logic
+                es.close(); // Close the EventSource connection
+                isStreaming = false;
+                streamButton.textContent = 'Connect / Start Stream';
+                streamButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                streamButton.classList.add('bg-green-500', 'hover:bg-green-600');
+                resultsArea.innerHTML += "\n--- Connection Closed by User ---";
+                
+                // Cleanup chart and data
+                if (chartInstance) {
+                    chartInstance.destroy();
+                    chartInstance = null;
+                }
+                document.getElementById('download-csv-button').disabled = (storedResults.length === 0);
+                return;
+            }
+
+            // Start streaming
+            // 1. Construct the target URL: ENDPOINT/problems/:id/results (standard HTTP GET for SSE)
+            const targetUrl = `${baseUrl}/problems/${encodeURIComponent(problemName)}/results`;
+            
+            console.log(`[ACTION] Attempting to connect to SSE: ${targetUrl}`);
+            
+            resultsArea.textContent = `Connecting to SSE stream at ${targetUrl}...`;
+            resultsArea.scrollTop = resultsArea.scrollHeight;
+
+            try {
+                es = new EventSource(targetUrl); // Use EventSource
+                isStreaming = true;
+                streamButton.textContent = 'Stop Stream';
+                streamButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+                streamButton.classList.add('bg-red-500', 'hover:bg-red-600');
+
+                // Handle successful connection
+                es.onopen = () => {
+                    resultsArea.textContent += "\n--- Connection Successful. Waiting for data... ---";
+                    resultsArea.scrollTop = resultsArea.scrollHeight;
+                    showMessage(`Connected to results stream for '${problemName}' via SSE.`, false);
+                    initChart();
+                    lastLogTime = 0; // Reset timer
+                    storedResults = []; // Clear data
+                    document.getElementById('download-csv-button').disabled = true;
+                };
+
+                // Handle incoming message events (default event type)
+                es.onmessage = (event) => {
+                    const currentTime = Date.now();
+
+                    try {
+                        // The SSE data field contains the JSON string
+                        const data = JSON.parse(event.data);
+                        console.log(data)
+                        const population = data.population;
+                        
+                        if (population && population.length > 0) {
+                            // Assuming fitness minimization: find the individual with the lowest fitness
+                            const bestIndividual = population.reduce((min, current) => 
+                                current.fitness < min.fitness ? current : min, population[0]
+                            );
+                            const bestFitness = bestIndividual.fitness;
+                            
+                            // Log to console/raw output on every message
+                            const timestampLocal = new Date().toLocaleTimeString();
+                            const formattedOutput = `\n[${timestampLocal}] New Best Fitness: ${bestFitness.toFixed(4)}`;
+                            resultsArea.textContent += formattedOutput;
+
+                            // Store and plot every 30 seconds
+                            if (currentTime - lastLogTime >= LOG_INTERVAL_MS) {
+                                const resultEntry = {
+                                    timestamp: new Date().toISOString(), // ISO for CSV consistency
+                                    fitness: bestFitness,
+                                    // Clean up genotype string for storage/CSV
+                                    genotype: bestIndividual.genotype.trim().replace(/\s+/g, ' '), 
+                                    problemID: data.problemID
+                                };
+                                storedResults.push(resultEntry);
+                                lastLogTime = currentTime;
+
+                                updateChart(resultEntry.timestamp, resultEntry.fitness);
+                                document.getElementById('download-csv-button').disabled = false;
+                            }
+                        } else {
+                            resultsArea.textContent += `\n[${new Date().toLocaleTimeString()}] Received data for ${data.problemID}, but population is empty.`;
+                        }
+                    } catch (e) {
+                        resultsArea.textContent += `\n[${new Date().toLocaleTimeString()}] Non-JSON message received or failed to parse: ${event.data}`;
+                    }
+
+                    // Auto-scroll to the bottom
+                    resultsArea.scrollTop = resultsArea.scrollHeight;
+                };
+
+                // Handle errors (including connection interruption/closure)
+                es.onerror = (error) => {
+                    console.error("SSE Error:", error);
+                    // Check if the connection is permanently closed (e.g., server returned non-200)
+                    if (es.readyState === EventSource.CLOSED) {
+                        isStreaming = false;
+                        streamButton.textContent = 'Connect / Start Stream';
+                        streamButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                        streamButton.classList.add('bg-green-500', 'hover:bg-green-600');
+                        resultsArea.textContent += "\n--- Connection Interrupted/Closed ---";
+                        resultsArea.scrollTop = resultsArea.scrollHeight;
+                        showMessage("SSE connection interrupted or closed by server.");
+                        if (chartInstance) {
+                            chartInstance.destroy();
+                            chartInstance = null;
+                        }
+                    } else {
+                        // EventSource will typically attempt to reconnect automatically
+                        showMessage("SSE connection error. Retrying...");
+                    }
+                };
+
+            } catch (error) {
+                isStreaming = false;
+                streamButton.textContent = 'Connect / Start Stream';
+                streamButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                    streamButton.classList.add('bg-green-500', 'hover:bg-green-600');
+                resultsArea.textContent += `\n--- Failed to create EventSource instance: ${error.message} ---`;
+                showMessage("Failed to initialize SSE connection. Check URL format.");
+            }
+        }
+
+    </script>
+</body>
+</html>

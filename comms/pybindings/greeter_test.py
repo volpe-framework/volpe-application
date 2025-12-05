@@ -15,11 +15,11 @@ func = F42022(ndim=NDIM)
 LOW = func.lb[0]
 HIGH = func.ub[0]
 MUTATE_FACTOR = (HIGH-LOW)*0.1
-MUTATION_RATE=0.1
+MUTATION_RATE=0.3
 
-SELECTION_RANDOMNESS=0.2
+SELECTION_RANDOMNESS=0.3
 
-BASE_POPULATION_SIZE = 100
+BASE_POPULATION_SIZE = 1000
 
 import numpy as np
 
@@ -76,6 +76,9 @@ def expand(popln: list[np.ndarray], newPop: int):
         new_indi = crossover(x1, x2)
         popln.append(new_indi)
     return popln
+
+def get_random_list(popln: list[np.ndarray], n: int):
+    return [ popln[np.random.randint(len(popln))] for _ in range(n) ]
 
 def mutate_popln(popln: list[np.ndarray]):
     for i in range(len(popln)):
@@ -140,9 +143,15 @@ class VolpeGreeterServicer(vp.VolpeContainerServicer):
         return popListToBytes(popSorted[:request.size])
     def GetResults(self, request: pb.PopulationSize, context):
         if self.popln is None:
-            return pbc.Population(members=[], problemID="p1")
+            return pbc.population(members=[], problemid="p1")
         popSorted = sorted(self.popln, key=fitness)
         return popListTostring(popSorted[:request.size])
+
+    def GetRandom(self, request: pb.PopulationSize, context):
+        if self.popln is None:
+            return pbc.Population(members=[], problemID="p1")
+        popList = get_random_list(self.popln, request.size)
+        return popListToBytes(popList)
 
     def AdjustPopulationSize(self, request: pb.PopulationSize, context):
         """Missing associated documentation comment in .proto file."""

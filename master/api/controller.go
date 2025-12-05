@@ -149,12 +149,14 @@ func (va *VolpeAPI) StreamResults (c *gin.Context) {
 				Fitness: ind.GetFitness(),
 			}
 		}
+		c.Writer.WriteString("data: ")
 		jsonb, _ := json.Marshal(resultPop)
 		_, err = c.Writer.Write(jsonb)
 		if err != nil {
 			log.Error().Msgf("error writing result for %s: %s", problemID, err)
 			break
 		}
+		c.Writer.WriteString("\n\n")
 		c.Writer.Flush()
 	
 		time.Sleep(5*time.Second)
