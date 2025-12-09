@@ -10,6 +10,7 @@ serv.AdjustPopulationSize(gt.pb.PopulationSize(size=200), None)
 print("adjusted size")
 for i in range(10):
     serv.RunForGenerations(None, None)
+    print(i)
 print("ran for gens")
 res = serv.GetBestPopulation(gt.pb.PopulationSize(size=10), None)
 serv.InitFromSeedPopulation(res, None)
