@@ -39,12 +39,14 @@ class VolpeProblem(vp.VolpeContainerServicer):
         self.cpu_count : int = os.cpu_count() if os.cpu_count() is not None else 1
         self.procPool = multiprocessing.Pool(self.cpu_count)
 
-        poplnSplits = self.procPool.map(lambda n: return [ self.gen_ind() for _ in range(n) ],
-                                        [ BASE_POPULATION_SIZE//self.cpu_count if i >= BASE_POPULATION_SIZE%self.cpu_count else BASE_POPULATION_SIZE//self.cpu_count+1 for i in range(self.cpu_count)]
-                                        )
+        popSplitList = self.__splitPops__(BASE_POPULATION_SIZE, self.cpu_count)
+        poplnSplits = self.procPool.map((lambda n: [ self.gen_ind() for _ in range(n) ]), popSplitList)
         self.popln = poplnSplits[0]
         for k in range(1, self.cpu_count):
             self.popln.extend(poplnSplits[k])
+
+    def __splitPops__(self, n: int, cpus: int):
+        return [ n//cpus if i >= n%cpus else n//cpus + 1 for i in range(cpus)]
 
     def SayHello(self, request: pb.HelloRequest, context: grpc.ServicerContext):
         return pb.HelloReply(message="hello " + request.name)
@@ -52,9 +54,7 @@ class VolpeProblem(vp.VolpeContainerServicer):
         """Missing associated documentation comment in .proto file."""
         self.poplock.acquire()
 
-        poplnSplits = self.procPool.map(lambda n: return [ self.gen_ind() for _ in range(n) ],
-                                        [ BASE_POPULATION_SIZE//self.cpu_count if i >= BASE_POPULATION_SIZE%self.cpu_count else BASE_POPULATION_SIZE//self.cpu_count+1 for i in range(self.cpu_count)]
-                                        )
+        poplnSplits = self.procPool.map(lambda n: [ self.gen_ind() for _ in range(n) ], self.__splitPops__(BASE_POPULATION_SIZE, self.cpu_count))
         self.popln = poplnSplits[0]
         for k in range(1, self.cpu_count):
             self.popln.extend(poplnSplits[k])
@@ -102,10 +102,20 @@ class VolpeProblem(vp.VolpeContainerServicer):
         # TODO: adjust to targetSize
         # self.popln = adjustSize(self.popln, BASE_POPULATION_SIZE)
         return pb.Reply(success=True)
+    def __evolveLambda__(self, n: int):
+        newpop = []
+        for i in range(n):
+            inds = [ self.popln[i] for i in np.random.randint(0, len(self.popln), 2) ]
+            newinds = self.crossover(inds[0], inds[1])
+            for i in range(len(newinds)):
+                if np.random.random() < MUTATION_RATE:
+                    newinds[i] = self.mutate(newinds[i])
+            newpop.extend(newinds)
+
     def RunForGenerations(self, request, context):
         """Missing associated documentation comment in .proto file."""
         ogLen = len(self.popln)
-        newpop = []
+        newPops = self.procPool.map(self.__crossoverLambda__, )
         while len(newpop) < len(self.popln):
             inds = [ self.popln[i] for i in np.random.randint(0, len(self.popln), 2) ]
             newinds = self.crossover(inds[0], inds[1])
