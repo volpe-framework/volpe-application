@@ -1,2 +1,4 @@
 numpy
 opfunu
+deap
+scoop

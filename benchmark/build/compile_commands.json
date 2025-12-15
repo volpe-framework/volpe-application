@@ -1,0 +1,38 @@
+[
+{
+  "directory": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/build",
+  "command": "/usr/bin/c++  -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/. -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/./SEvoBench/include -std=c++14 -pthread -o CMakeFiles/volpe_problem.dir/main.cpp.o -c /home/n3rdy/dev/go/src/volpe-framework/benchmark/main.cpp",
+  "file": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/main.cpp",
+  "output": "CMakeFiles/volpe_problem.dir/main.cpp.o"
+},
+{
+  "directory": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/build",
+  "command": "/usr/bin/c++  -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/. -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/./SEvoBench/include -std=c++14 -pthread -o CMakeFiles/volpe_problem.dir/volpe_container.grpc.pb.cc.o -c /home/n3rdy/dev/go/src/volpe-framework/benchmark/volpe_container.grpc.pb.cc",
+  "file": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/volpe_container.grpc.pb.cc",
+  "output": "CMakeFiles/volpe_problem.dir/volpe_container.grpc.pb.cc.o"
+},
+{
+  "directory": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/build",
+  "command": "/usr/bin/c++  -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/. -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/./SEvoBench/include -std=c++14 -pthread -o CMakeFiles/volpe_problem.dir/volpe_container.pb.cc.o -c /home/n3rdy/dev/go/src/volpe-framework/benchmark/volpe_container.pb.cc",
+  "file": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/volpe_container.pb.cc",
+  "output": "CMakeFiles/volpe_problem.dir/volpe_container.pb.cc.o"
+},
+{
+  "directory": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/build",
+  "command": "/usr/bin/c++  -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/. -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/./SEvoBench/include -std=c++14 -pthread -o CMakeFiles/volpe_problem.dir/common.grpc.pb.cc.o -c /home/n3rdy/dev/go/src/volpe-framework/benchmark/common.grpc.pb.cc",
+  "file": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/common.grpc.pb.cc",
+  "output": "CMakeFiles/volpe_problem.dir/common.grpc.pb.cc.o"
+},
+{
+  "directory": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/build",
+  "command": "/usr/bin/c++  -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/. -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/./SEvoBench/include -std=c++14 -pthread -o CMakeFiles/volpe_problem.dir/common.pb.cc.o -c /home/n3rdy/dev/go/src/volpe-framework/benchmark/common.pb.cc",
+  "file": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/common.pb.cc",
+  "output": "CMakeFiles/volpe_problem.dir/common.pb.cc.o"
+},
+{
+  "directory": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/build",
+  "command": "/usr/bin/c++  -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/. -I/home/n3rdy/dev/go/src/volpe-framework/benchmark/./SEvoBench/include -std=c++14 -pthread -o CMakeFiles/volpe_problem.dir/volpe_problem.cpp.o -c /home/n3rdy/dev/go/src/volpe-framework/benchmark/volpe_problem.cpp",
+  "file": "/home/n3rdy/dev/go/src/volpe-framework/benchmark/volpe_problem.cpp",
+  "output": "CMakeFiles/volpe_problem.dir/volpe_problem.cpp.o"
+}
+]

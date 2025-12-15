@@ -14,5 +14,5 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD [ "/usr/local/bin/python3", "./greeter_test.py" ]
+CMD [ "/usr/local/bin/python3", "-m", "scoop", "./greeter_test.py" ]
 
