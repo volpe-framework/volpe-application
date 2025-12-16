@@ -1,24 +1,25 @@
-from typing import Any
+from typing import Any, override
 import volpe_container_pb2 as pb
 import common_pb2 as pbc
 import volpe_container_pb2_grpc as vp
 import grpc
 import concurrent.futures
+import threading
 
-import opfunu.cec_based.cec2022 as cec
+from opfunu.cec_based.cec2022 import *
 
-NDIM=10
+NDIM=20
 
-func = cec.F42022(ndim=NDIM)
+func = F122022(ndim=NDIM)
 
 LOW = func.lb[0]
 HIGH = func.ub[0]
-MUTATE_FACTOR = (HIGH-LOW)*0.1
-MUTATION_RATE=0.3
+MUTATE_STD = 5.0
+MUTATION_RATE = 0.1
+INDPB = 1/NDIM
+CXPROB = 0.9
 
-SELECTION_RANDOMNESS=0.3
-
-BASE_POPULATION_SIZE = 1000
+BASE_POPULATION_SIZE = 100
 
 import numpy as np
 
@@ -28,7 +29,8 @@ def fitness(x):
     return np.float32(func.evaluate(x))
 
 def mutate(x):
-    mutated = x + (np.random.random(size=NDIM) - 0.5) * MUTATE_FACTOR
+    mutated = x + np.random.normal(size=NDIM, scale=MUTATE_STD) * \
+            np.array([ 1 if np.random.random() < INDPB else 0 ])
     for i in range(NDIM):
         if mutated[i] < LOW:
             mutated[i] = LOW
@@ -37,99 +39,176 @@ def mutate(x):
     if len(mutated) != NDIM:
         print("mutate")
     return np.astype(mutated, np.float32)
-def crossover(c1, c2):
-    alpha = np.random.randint(0, 2, len(c1))
-    p1 = c1*alpha + c2*(1-alpha)
-    p2 = c2*alpha + c1*(1-alpha)
-    if len(p1) != NDIM or len(p2) != NDIM:
-        print("crossover")
-    return [ p1, p2 ]
-def tourney(popln, k=3):
-    inds = [ popln[i] for i in np.random.randint(0, len(popln), k) ]
-    inds.sort(key=fitness)
-    if len(inds[0]) != NDIM:
-        print(len(inds[0]))
-        print("tourney")
-    return inds[0]
-def select(popln: list[np.ndarray], n: int):
-    # Reduces the current population to n members
-    if n >= len(popln):
+def varAnd(popln):
+    ogLen = len(popln)
+    popln = select(popln, ogLen)
+    indices = np.random.permutation(ogLen)
+    newpopln = [ np.array([]) for _ in range(ogLen) ]
+    for i in range(0, ogLen, 2):
+        if np.random.random() < CXPROB:
+            i1 = indices[i]
+            i2 = indices[i+1]
+            n1, n2 = crossover(popln[i1], popln[i2])
+            newpopln[i] = n1
+            newpopln[i+1] = n2
+        else:
+            newpopln[i] = popln[indices[i]]
+            newpopln[i+1] = popln[indices[i+1]]
+    return mutate_popln(newpopln)
+
+def crossover(x, y):
+    rands = np.random.uniform(0, 1, size=NDIM)
+    return np.array([x[i] if rands[i] == 0 else y[i] for i in range(NDIM)]), \
+        np.array([y[i] if rands[i] == 0 else x[i] for i in range(NDIM)])
+
+def select(popln: list[np.ndarray], newPop: int):
+    newpopln = []
+    while len(newpopln) < newPop:
+        choices = [choice(popln) for _ in range(3)]
+        newpopln.append(popln[min(choices, key=lambda x: fitness(popln[x]))].copy())
+    return newpopln
+
+def choice(popln: list[Any]):
+    l = len(popln)
+    idx = np.random.randint(0, l)
+    return idx
+
+def gen_ind():
+    return (np.random.random(size=NDIM) * (HIGH-LOW) + LOW).astype(np.float32)
+
+def expand(popln: list[np.ndarray], newPop: int):
+    if len(popln) == 0:
+        return [ gen_ind() for _ in range(newPop) ]
+    if len(popln) >= newPop:
         return popln
-    new_pop = []
-    while len(new_pop) < n:
-        new_pop.append(tourney(popln))
-    return new_pop
-def encode(x: np.ndarray):
-    return x.astype(np.float32).tobytes()
-def decode(b: bytes):
-    return np.frombuffer(b, dtype=np.float32)
-def tostring(x: np.ndarray):
-    return np.array_str(x)
+    while len(popln) < newPop:
+        x1 = popln[choice(popln)]
+        x2 = popln[choice(popln)]
+        y1, y2 = crossover(x1, x2)
+        popln.append(y1)
+        popln.append(y2)
+    return popln
+
+def get_random_list(popln: list[np.ndarray], n: int):
+    return [ popln[np.random.randint(len(popln))] for _ in range(n) ]
+
+def mutate_popln(popln: list[np.ndarray]):
+    for i in range(len(popln)):
+        if np.random.random() < MUTATION_RATE:
+            popln[i] = mutate(popln[i])
+    return popln
+
+def popListTostring(popln: list[np.ndarray]):
+    indList : list[pb.ResultIndividual] = []
+    for mem in popln:
+        indList.append(
+                pb.ResultIndividual(representation=np.array_str(mem), 
+                                    fitness=fitness(mem))
+                )
+    return pb.ResultPopulation(members=indList)
+
+def bstringToPopln(popln: pbc.Population):
+    popList = []
+    for memb in popln.members:
+        popList.append(np.frombuffer(memb.genotype, dtype=np.float32))
+    return popList
+
+def adjustSize(popln: list[np.ndarray], targetSize: int):
+    print("ADJUSTSIZE called unexpectedly")
+    if len(popln) < targetSize:
+        return expand(popln, targetSize)
+    else:
+        return select(popln, targetSize)
+
+def popListToBytes(popln: list[np.ndarray]):
+    indList : list[pbc.Individual] = []
+    for mem in popln:
+        indList.append(pbc.Individual(genotype=mem.astype(np.float32).tobytes(), fitness=fitness(mem)))
+    return pbc.Population(members=indList, problemID="p1")
 
 class VolpeGreeterServicer(vp.VolpeContainerServicer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.popln = [ gen_ind() for _ in range(BASE_POPULATION_SIZE) ]
+        self.popln : list[np.ndarray] = [ gen_ind() for _ in range(BASE_POPULATION_SIZE)  ]
+        self.poplock = threading.Lock()
+
+    @override
     def SayHello(self, request: pb.HelloRequest, context: grpc.ServicerContext):
         return pb.HelloReply(message="hello " + request.name)
+    @override
     def InitFromSeed(self, request: pb.Seed, context: grpc.ServicerContext):
         """Missing associated documentation comment in .proto file."""
-        self.popln = [ gen_ind() for _ in range(BASE_POPULATION_SIZE)  ]
-        return pb.Reply(success=True)
-
+        with self.poplock:
+            self.popln = [ gen_ind() for _ in range(BASE_POPULATION_SIZE)  ]
+            return pb.Reply(success=True)
+    @override
     def InitFromSeedPopulation(self, request: pbc.Population, context: grpc.ServicerContext):
         """Missing associated documentation comment in .proto file."""
-        seedPop = [ decode(x.genotype) for x in request.members ]
-        print("INCORPORATING POPLN OF LENGTH ", len(seedPop), " INTO ", len(self.popln))
-        if self.popln == None:
-            self.popln = []
-        self.popln.extend(seedPop)
-        self.popln = select(self.popln, BASE_POPULATION_SIZE)
-        return pb.Reply(success=True)
+        with self.poplock:
+            seedPop = bstringToPopln(request)
+            print("INCORPORATING POPLN OF LENGTH ", len(seedPop), " INTO ", len(self.popln))
+            print(seedPop)
+            if self.popln == None:
+                self.popln = []
+           
+            for i in range(len(seedPop)):
+                ci = choice(self.popln)
+                self.popln[ci] = seedPop[i]
+
+            print("BEST IS ", min([fitness(x) for x in self.popln]), " vs ", min([fitness(x) for x in seedPop]))
+            return pb.Reply(success=True)
+    @override
     def GetBestPopulation(self, request: pb.PopulationSize, context):
         """Missing associated documentation comment in .proto file."""
-        if self.popln is None:
-            return pbc.Population(members=[], problemID="p1")
-        popSorted = sorted(self.popln, key=fitness)
-        resPop = popSorted[:request.size]
-        return pbc.Population(members=[pbc.Individual(genotype=encode(x),
-                                                                fitness=float(fitness(x)))
-                                            for x in resPop])
+        with self.poplock:
+            if self.popln is None:
+                return pbc.Population(members=[], problemID="p1")
+            popSorted = sorted(self.popln, key=fitness)
+            return popListToBytes(popSorted[:request.size])
+    @override
     def GetResults(self, request: pb.PopulationSize, context):
-        if self.popln is None:
-            return pb.ResultPopulation(members=[])
-        popSorted = sorted(self.popln, key=fitness)
-        resPop = popSorted[:request.size]
-        return pb.ResultPopulation(members=[pb.ResultIndividual(representation=tostring(x),
-                                                                fitness=float(fitness(x)))
-                                            for x in resPop])
- 
+        with self.poplock:
+            if self.popln is None:
+                return pbc.Population(members=[], problemid="p1")
+            popSorted = sorted(self.popln, key=fitness)
+            return popListTostring(popSorted[:request.size])
+    @override
     def GetRandom(self, request: pb.PopulationSize, context):
-        if self.popln is None:
-            return pbc.Population(members=[], problemID="p1")
-        popList = [ self.popln[i] for i in np.random.randint(0, len(self.popln), request.size) ]
-        return pbc.Population(members=[pbc.Individual(genotype=encode(x),
-                                                      fitness=float(fitness(x)))
-                                       for x in popList])
-    def AdjustPopulationSize(self, request: pb.PopulationSize, context):
+        with self.poplock:
+            if self.popln is None:
+                return pbc.Population(members=[], problemID="p1")
+            popList = get_random_list(self.popln, request.size)
+            return popListToBytes(popList)
+    @override
+    def AdjustPopulationSize(self, request: pb.PopulationSize, context: grpc.ServicerContext):
         """Missing associated documentation comment in .proto file."""
+        # context.abort(grpc.StatusCode.CANCELLED, "AdjustPopulationSize not allowed")
         # targetSize = request.size
-        # TODO: adjust to targetSize
-        # self.popln = adjustSize(self.popln, BASE_POPULATION_SIZE)
-        return pb.Reply(success=True)
-    def RunForGenerations(self, request, context):
+        # # TODO: adjust to targetSize
+        # with self.poplock:
+        #     self.popln = adjustSize(self.popln, BASE_POPULATION_SIZE)
+        #     return pb.Reply(success=True)
+    @override
+    def RunForGenerations(self, request: pb.PopulationSize, context):
         """Missing associated documentation comment in .proto file."""
-        ogLen = len(self.popln)
-        newpop = []
-        while len(newpop) < len(self.popln):
-            inds = [ self.popln[i] for i in np.random.randint(0, len(self.popln), 2) ]
-            newinds = crossover(inds[0], inds[1])
-            for i in range(len(newinds)):
-                if np.random.random() < MUTATION_RATE:
-                    newinds[i] = mutate(newinds[i])
-            newpop.extend(newinds)
-        self.popln.extend(newpop)
-        self.popln = select(self.popln, ogLen)
+        with self.poplock:
+            ogLen = len(self.popln)
+            popln = select(self.popln, ogLen)
+            indices = np.random.permutation(ogLen)
+            newpopln = [ np.array([]) for _ in range(ogLen) ]
+            for i in range(0, ogLen, 2):
+                if np.random.random() < CXPROB:
+                    i1 = indices[i]
+                    i2 = indices[i+1]
+                    n1, n2 = crossover(popln[i1], popln[i2])
+                    newpopln[i] = n1
+                    newpopln[i+1] = n2
+                else:
+                    newpopln[i] = popln[indices[i]]
+                    newpopln[i+1] = popln[indices[i+1]]
+            self.popln = mutate_popln(newpopln)
+            self.popln = expand(self.popln, ogLen*2)
+            self.popln = select(self.popln, ogLen)
         return pb.Reply(success=True)
 
 if __name__=='__main__':

@@ -10,6 +10,7 @@ import (
 	ccomms "volpe-framework/comms/container"
 	vcomms "volpe-framework/comms/volpe"
 
+	"github.com/containers/podman/v5/pkg/bindings/containers"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -156,5 +157,22 @@ func (pc *ProblemContainer) runGenerations(ctx context.Context) {
 		if err != nil {
 			log.Err(err).Caller().Msgf("running gen for %s failed", pc.problemID)
 		}
+	}
+}
+
+func (pc *ProblemContainer) CloseContainer() {
+	podman, err := NewPodmanConnection()
+	if err != nil {
+		log.Err(err).Caller().Msgf("container name: %s", pc.containerName)
+		return
+	}
+	forceRemove := true
+	options := containers.RemoveOptions{
+		Force: &forceRemove,
+	}
+	_, err = containers.Remove(podman, pc.containerName, &options)
+	if err != nil {
+		log.Err(err).Caller().Msgf("container name: %s", pc.containerName)
+		return
 	}
 }

@@ -102,10 +102,10 @@ func applySchedule(master *vcomms.MasterComms, cman *cm.ContainerManager, sched 
 			return
 		}
 		schedule.Apply(func (workerID string, problemID string, val int32) {
-			adjpop := &vcomms.AdjustPopulationMessage{
+			adjpop := &vcomms.AdjustInstancesMessage{
 				ProblemID: problemID,
 				Seed: nil, 
-				Size: val,
+				Instances: val,
 			}
 			if val != 0 {
 				subpop, err := cman.GetRandomSubpopulation(problemID)
@@ -116,8 +116,8 @@ func applySchedule(master *vcomms.MasterComms, cman *cm.ContainerManager, sched 
 				adjpop.Seed = subpop
 			}
 			msg := vcomms.MasterMessage{
-				Message: &vcomms.MasterMessage_AdjPop{
-					AdjPop: adjpop,
+				Message: &vcomms.MasterMessage_AdjInst{
+					AdjInst: adjpop,
 				},
 			}
 			log.Info().Caller().Msgf("worker %s problem %s pop %s", workerID, problemID, val)

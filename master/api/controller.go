@@ -109,7 +109,7 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 	fname := problemID + ".tar"
 
 	va.sched.AddProblem(problemID)
-	va.contman.AddProblem(problemID, fname)
+	va.contman.AddProblem(problemID, fname, 1)
 	c.Status(200)
 }
 
