@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"runtime"
 	"sync"
 	"volpe-framework/comms/common"
 
@@ -46,9 +47,10 @@ func NewWorkerComms(endpoint string, workerID string) (*WorkerComms, error) {
 	}
 
 	err = wc.stream.Send(&WorkerMessage{
-		Message: &WorkerMessage_WorkerID{
-			WorkerID: &WorkerID{
-				Id: workerID,
+		Message: &WorkerMessage_Hello{
+			Hello: &WorkerHello{
+				WorkerID: &WorkerID{Id: workerID},
+				CpuCount: int32(runtime.NumCPU()),
 			},
 		},
 	})
@@ -68,7 +70,7 @@ func (wc *WorkerComms) CloseCommms() {
 	}
 }
 
-func (wc *WorkerComms) HandleStreams(adjPopChannel chan *AdjustPopulationMessage) {
+func (wc *WorkerComms) HandleStreams(adjInstChannel chan *AdjustInstancesMessage) {
 	for {
 		msg, err := wc.stream.Recv()
 		if err == io.EOF {
@@ -78,9 +80,9 @@ func (wc *WorkerComms) HandleStreams(adjPopChannel chan *AdjustPopulationMessage
 			log.Error().Caller().Msg(err.Error())
 			return
 		}
-		if msg.GetAdjPop() != nil {
-			adjPop := msg.GetAdjPop()
-			adjPopChannel <- adjPop
+		if msg.GetAdjInst() != nil {
+			adjPop := msg.GetAdjInst()
+			adjInstChannel <- adjPop
 		} else {
 			log.Warn().Caller().Msg("received unexpected msg, ignoring")
 		}

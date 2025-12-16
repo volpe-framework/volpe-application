@@ -8,9 +8,14 @@ import (
 	//"github.com/rs/zerolog/log"
 )
 
+type Worker struct {
+	workerID string
+	cpuCount int32
+}
+
 type StaticScheduler struct {
 	problems []string
-	workers  []string
+	workers  []Worker
 	mut sync.Mutex
 }
 
@@ -18,19 +23,23 @@ type StaticScheduler struct {
 func NewStaticScheduler() (*StaticScheduler, error) {
 	sched := &StaticScheduler{}
 	sched.problems = make([]string, 0)
-	sched.workers = make([]string, 0)
+	sched.workers = make([]Worker, 0)
 	return sched, nil
 }
 
 func (ss *StaticScheduler) Init() error { return nil }
 
-func (ss *StaticScheduler) AddWorker(worker string) {
+func (ss *StaticScheduler) AddWorker(workerID string, cpuCount int32) {
 	ss.mut.Lock()
 	defer ss.mut.Unlock()
 
-	if !slices.Contains(ss.workers, worker) {
-		ss.workers = append(ss.workers, worker)
+	for _, worker := range ss.workers {
+		if worker.workerID == workerID {
+			return
+		}
 	}
+
+	ss.workers = append(ss.workers, Worker{workerID, cpuCount})
 }
 
 func (ss *StaticScheduler) UpdateMetrics(metrics *vcomms.MetricsMessage) {
@@ -42,7 +51,7 @@ func (ss *StaticScheduler) RemoveWorker(worker string) {
 	ss.mut.Lock()
 	defer ss.mut.Unlock()
 
-	workerInd := slices.Index(ss.workers, worker)
+	workerInd := slices.IndexFunc(ss.workers, func (w Worker) bool { return w.workerID == worker } )
 	if workerInd == -1 {
 		return
 	}
@@ -59,7 +68,7 @@ func (ss *StaticScheduler) FillSchedule(sched Schedule) error {
 	for _, p := range ss.problems {
 		for _, w := range ss.workers {
 			// TODO: adjust default population size?
-			sched.Set(w, p, 1000) 
+			sched.Set(w.workerID, p, w.cpuCount) 
 		}
 	}
 	return nil

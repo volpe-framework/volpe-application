@@ -7,7 +7,7 @@ import (
 
 func TestContman(t *testing.T) {
 	cm := cman.NewContainerManager(false)
-	err := cm.AddProblem("p1", "img.tar")
+	err := cm.AddProblem("p1", "img.tar", 1)
 	if err != nil {
 		t.Error(err)
 	}

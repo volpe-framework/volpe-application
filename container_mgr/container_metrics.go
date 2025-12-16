@@ -16,9 +16,9 @@ import (
 
 func (cm *ContainerManager) getMetricsChannel(conn context.Context) chan pmtypes.ContainerStatsReport {
 	cm.pcMut.Lock()
-
 	defer cm.pcMut.Unlock()
-	contNames := make([]string, len(cm.problemContainers))
+
+	contNames := make([]string, len(cm.containers))
 	i := 0
 	for k := range cm.containers {
 		contNames[i] = k

@@ -47,11 +47,11 @@ func main() {
 	// TODO: stop container
 	// defer cm.StopContainer(containerName)
 
-	adjPopChan := make(chan *vcomms.AdjustPopulationMessage, 10)
+	adjInstChan := make(chan *vcomms.AdjustInstancesMessage, 10)
 
-	go adjPopHandler(wc, adjPopChan, cm)
+	go adjInstHandler(wc, adjInstChan, cm)
 	
-	wc.HandleStreams(adjPopChan)
+	wc.HandleStreams(adjInstChan)
 }
 
 func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {
@@ -75,27 +75,27 @@ func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {
 	}
 }
 
-func adjPopHandler(wc *vcomms.WorkerComms, adjPopChan chan *vcomms.AdjustPopulationMessage, cm *contman.ContainerManager) {
+func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInstancesMessage, cm *contman.ContainerManager) {
 	for {
-		adjPop, ok := <- adjPopChan
+		adjInst, ok := <- adjInstChan
 		if !ok {
 			log.Info().Caller().Msg("adjPopChan closed")
 			return
 		}
-		problemID := adjPop.GetProblemID()
+		problemID := adjInst.GetProblemID()
 		if !cm.HasProblem(problemID) {
 			fname, err := wc.GetImageFile(problemID)
 			if err != nil {
 				log.Error().Caller().Msgf("error fetching problemID %s: %s", problemID, err.Error())
 				continue
 			}
-			err = cm.AddProblem(problemID, fname)
+			err = cm.AddProblem(problemID, fname, int(adjInst.GetInstances()))
 			if err != nil {
 				log.Error().Caller().Msgf("error running problem %s: %s", problemID, err.Error())
 				continue
 			}
 			log.Info().Caller().Msgf("running new problem %s", problemID)
 		}
-		cm.HandlePopulationEvent(adjPop)
+		cm.HandleInstancesEvent(adjInst)
 	}
 }

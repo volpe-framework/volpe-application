@@ -12,7 +12,7 @@ import (
 type DummySched struct {
 }
 
-func (ds *DummySched) AddWorker(_ string) {
+func (ds *DummySched) AddWorker(_ string, _ int32) {
 }
 
 func (ds *DummySched) RemoveWorker(_ string) {

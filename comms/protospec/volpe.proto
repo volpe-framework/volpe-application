@@ -17,8 +17,15 @@ message MasterMessage {
     // can be adjust population only
     oneof message {
         AdjustPopulationMessage adjPop = 1;
+        AdjustInstancesMessage adjInst = 2;
     }
-} 
+}
+
+message AdjustInstancesMessage {
+  string problemID = 1;
+  Population seed = 2;
+  int32 instances = 3;
+}
 
 message AdjustPopulationMessage {
     string problemID = 1;
@@ -26,12 +33,17 @@ message AdjustPopulationMessage {
     int32 size = 3;
 }
 
+message WorkerHello {
+  WorkerID workerID = 1;
+  int32 cpuCount = 2;
+}
+
 message WorkerMessage {
     // can be metrics, or subpopulation
     oneof message {
         MetricsMessage metrics = 1;
         Population population = 2;
-        WorkerID workerID = 3;
+        WorkerHello hello = 3;
     }
 }
 

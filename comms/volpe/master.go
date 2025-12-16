@@ -32,7 +32,7 @@ type masterCommsServer struct {
 }
 
 type SchedulerComms interface {
-	AddWorker(workerID string);
+	AddWorker(workerID string, cpuCount int32);
 	RemoveWorker(workerID string);
 }
 
@@ -80,8 +80,8 @@ func mcsStreamHandlerThread(
 			} else if result.GetPopulation() != nil {
 				log.Info().Caller().Msgf("workerID %s received population", workerID)
 				popChan <- result.GetPopulation()
-			} else if result.GetWorkerID() != nil {
-				log.Warn().Caller().Msg("got unexpected workerID from stream for " + workerID)
+			} else if result.GetHello() != nil {
+				log.Warn().Caller().Msg("got unexpected HelloMsg from stream for " + workerID)
 			}
 		case result, ok := <-masterSendChan:
 			if !ok {
@@ -110,12 +110,12 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 		log.Error().Caller().Msg(err.Error())
 		return err
 	}
-	workerIdMsg := protoMsg.GetWorkerID()
-	if workerIdMsg == nil {
+	workerHelloMsg := protoMsg.GetHello()
+	if workerHelloMsg == nil {
 		log.Error().Caller().Msg("expected WorkerID msg first")
 		return errors.New("expected WorkerID msg first")
 	}
-	workerID := workerIdMsg.GetId()
+	workerID := workerHelloMsg.GetWorkerID().GetId()
 	log.Info().Caller().Msgf("workerID %s connected to master", workerID)
 	fmt.Println(workerID)
 
@@ -125,7 +125,7 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 	mcs.channs[workerID] = masterSendChan
 	mcs.chans_mut.Unlock()
 
-	mcs.sched.AddWorker(workerID)
+	mcs.sched.AddWorker(workerID, workerHelloMsg.GetCpuCount())
 
 	mcsStreamHandlerThread(workerID, stream, masterSendChan, mcs.metricChan, mcs.popChan)
 
