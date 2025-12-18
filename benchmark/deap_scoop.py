@@ -9,9 +9,10 @@ from scoop import futures # We will use scoop's map implementation
 
 # --- 1. Define the Problem Parameters ---
 DIMENSIONS = 20
-POPULATION_SIZE = 800
+POPULATION_SIZE = 400
 P_CROSSOVER = 0.9
 P_MUTATION = 0.2
+MAXTIME = 600
 
 # Gaussian Mutation Parameters
 MU = 0.0          # Mean of the Gaussian distribution (typically 0.0)
@@ -100,22 +101,27 @@ def main():
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", np.mean)
     stats.register("min", np.min)
+
+
+
     
     # Run the DEAP `eaSimple` algorithm. It will automatically use toolbox.map 
     # (which is set to scoop.futures.map) for parallel evaluation.
     try:
-        with open('bench.csv', 'w') as f:
+        with open('bench.csv', 'a') as f:
             writer = csv.writer(f)
-            lastWrite = 0
+            lastWrite = time.time()
             while True:
                 pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=P_CROSSOVER, mutpb=P_MUTATION, 
                                                 ngen=1, stats=stats, halloffame=hof, verbose=True)
                 cur = time.time()
-                if cur - lastWrite > 15:
+                if cur - lastWrite > 5:
                     best_ind=hof[0]
                     writer.writerow([cur-start_time, best_ind.fitness.values[0]])
                     lastWrite = cur
                     f.flush()
+                if cur - start_time >= MAXTIME:
+                    break
     except KeyboardInterrupt:
         print("Interrupted, exiting")
 

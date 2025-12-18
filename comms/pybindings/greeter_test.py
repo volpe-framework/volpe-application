@@ -10,26 +10,25 @@ from opfunu.cec_based.cec2022 import *
 
 NDIM=20
 
-func = F122022(ndim=NDIM)
+func = F72022(ndim=NDIM)
 
 LOW = func.lb[0]
 HIGH = func.ub[0]
 MUTATE_STD = 5.0
-MUTATION_RATE = 0.1
+MUTATION_RATE = 0.2
 INDPB = 1/NDIM
 CXPROB = 0.9
 
-BASE_POPULATION_SIZE = 100
+BASE_POPULATION_SIZE = 50
 
 import numpy as np
 
-def gen_ind():
-       return (np.random.random(size=NDIM) * (HIGH-LOW) + LOW).astype(np.float32)
+
 def fitness(x):
-    return np.float32(func.evaluate(x))
+    return float(np.float32(func.evaluate(x)))
 
 def mutate(x):
-    mutated = x + np.random.normal(size=NDIM, scale=MUTATE_STD) * \
+    mutated = x[0] + np.random.normal(size=NDIM, scale=MUTATE_STD) * \
             np.array([ 1 if np.random.random() < INDPB else 0 ])
     for i in range(NDIM):
         if mutated[i] < LOW:
@@ -38,34 +37,36 @@ def mutate(x):
             mutated[i] = HIGH
     if len(mutated) != NDIM:
         print("mutate")
-    return np.astype(mutated, np.float32)
+    ind = np.astype(mutated, np.float32)
+    return (ind, fitness(ind))
 def varAnd(popln):
     ogLen = len(popln)
     popln = select(popln, ogLen)
-    indices = np.random.permutation(ogLen)
-    newpopln = [ np.array([]) for _ in range(ogLen) ]
+    newpopln = []
     for i in range(0, ogLen, 2):
         if np.random.random() < CXPROB:
-            i1 = indices[i]
-            i2 = indices[i+1]
+            i1 = i
+            i2 = i+1
             n1, n2 = crossover(popln[i1], popln[i2])
-            newpopln[i] = n1
-            newpopln[i+1] = n2
+            newpopln.append(n1)
+            newpopln.append(n2)
         else:
-            newpopln[i] = popln[indices[i]]
-            newpopln[i+1] = popln[indices[i+1]]
+            newpopln.append(popln[i])
+            newpopln.append(popln[i+1])
     return mutate_popln(newpopln)
 
 def crossover(x, y):
     rands = np.random.uniform(0, 1, size=NDIM)
-    return np.array([x[i] if rands[i] == 0 else y[i] for i in range(NDIM)]), \
-        np.array([y[i] if rands[i] == 0 else x[i] for i in range(NDIM)])
+    ind1 = np.array([x[0][i] if rands[i] == 0 else y[0][i] for i in range(NDIM)])
+    ind2 = np.array([y[0][i] if rands[i] == 0 else x[0][i] for i in range(NDIM)])
+    return (ind1, fitness(ind1)), (ind2, fitness(ind2))
 
-def select(popln: list[np.ndarray], newPop: int):
+def select(popln: list[tuple[np.ndarray, float]], newPop: int):
     newpopln = []
     while len(newpopln) < newPop:
-        choices = [choice(popln) for _ in range(3)]
-        newpopln.append(popln[min(choices, key=lambda x: fitness(popln[x]))].copy())
+        choices = [popln[choice(popln)] for _ in range(3)]
+        selected = min(choices, key=lambda x: x[1])
+        newpopln.append((selected[0].copy(), selected[1]))
     return newpopln
 
 def choice(popln: list[Any]):
@@ -74,9 +75,10 @@ def choice(popln: list[Any]):
     return idx
 
 def gen_ind():
-    return (np.random.random(size=NDIM) * (HIGH-LOW) + LOW).astype(np.float32)
+    ind = (np.random.random(size=NDIM) * (HIGH-LOW) + LOW).astype(np.float32)
+    return (ind, fitness(ind))
 
-def expand(popln: list[np.ndarray], newPop: int):
+def expand(popln: list[tuple[np.ndarray, float]], newPop: int):
     if len(popln) == 0:
         return [ gen_ind() for _ in range(newPop) ]
     if len(popln) >= newPop:
@@ -89,47 +91,47 @@ def expand(popln: list[np.ndarray], newPop: int):
         popln.append(y2)
     return popln
 
-def get_random_list(popln: list[np.ndarray], n: int):
+def get_random_list(popln: list[tuple[np.ndarray, float]], n: int):
     return [ popln[np.random.randint(len(popln))] for _ in range(n) ]
 
-def mutate_popln(popln: list[np.ndarray]):
+def mutate_popln(popln: list[tuple[np.ndarray, float]]):
     for i in range(len(popln)):
         if np.random.random() < MUTATION_RATE:
             popln[i] = mutate(popln[i])
     return popln
 
-def popListTostring(popln: list[np.ndarray]):
+def popListTostring(popln: list[tuple[np.ndarray, float]]):
     indList : list[pb.ResultIndividual] = []
     for mem in popln:
         indList.append(
-                pb.ResultIndividual(representation=np.array_str(mem), 
-                                    fitness=fitness(mem))
+                pb.ResultIndividual(representation=np.array_str(mem[0]), 
+                                    fitness=mem[1])
                 )
     return pb.ResultPopulation(members=indList)
 
 def bstringToPopln(popln: pbc.Population):
     popList = []
     for memb in popln.members:
-        popList.append(np.frombuffer(memb.genotype, dtype=np.float32))
+        popList.append((np.frombuffer(memb.genotype, dtype=np.float32), memb.fitness))
     return popList
 
-def adjustSize(popln: list[np.ndarray], targetSize: int):
+def adjustSize(popln: list[tuple[np.ndarray, float]], targetSize: int):
     print("ADJUSTSIZE called unexpectedly")
     if len(popln) < targetSize:
         return expand(popln, targetSize)
     else:
         return select(popln, targetSize)
 
-def popListToBytes(popln: list[np.ndarray]):
+def popListToBytes(popln: list[tuple[np.ndarray, float]]):
     indList : list[pbc.Individual] = []
     for mem in popln:
-        indList.append(pbc.Individual(genotype=mem.astype(np.float32).tobytes(), fitness=fitness(mem)))
+        indList.append(pbc.Individual(genotype=mem[0].astype(np.float32).tobytes(), fitness=mem[1]))
     return pbc.Population(members=indList, problemID="p1")
 
 class VolpeGreeterServicer(vp.VolpeContainerServicer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.popln : list[np.ndarray] = [ gen_ind() for _ in range(BASE_POPULATION_SIZE)  ]
+        self.popln : list[tuple[np.ndarray, float]] = [ gen_ind() for _ in range(BASE_POPULATION_SIZE)  ]
         self.poplock = threading.Lock()
 
     @override
@@ -145,17 +147,14 @@ class VolpeGreeterServicer(vp.VolpeContainerServicer):
     def InitFromSeedPopulation(self, request: pbc.Population, context: grpc.ServicerContext):
         """Missing associated documentation comment in .proto file."""
         with self.poplock:
+            ogLen = len(self.popln)
             seedPop = bstringToPopln(request)
-            print("INCORPORATING POPLN OF LENGTH ", len(seedPop), " INTO ", len(self.popln))
-            print(seedPop)
             if self.popln == None:
                 self.popln = []
-           
-            for i in range(len(seedPop)):
-                ci = choice(self.popln)
-                self.popln[ci] = seedPop[i]
+            self.popln.extend(seedPop)
 
-            print("BEST IS ", min([fitness(x) for x in self.popln]), " vs ", min([fitness(x) for x in seedPop]))
+            self.popln = select(self.popln, ogLen)
+
             return pb.Reply(success=True)
     @override
     def GetBestPopulation(self, request: pb.PopulationSize, context):
@@ -163,14 +162,14 @@ class VolpeGreeterServicer(vp.VolpeContainerServicer):
         with self.poplock:
             if self.popln is None:
                 return pbc.Population(members=[], problemID="p1")
-            popSorted = sorted(self.popln, key=fitness)
+            popSorted = sorted(self.popln, key=lambda x: x[1])
             return popListToBytes(popSorted[:request.size])
     @override
     def GetResults(self, request: pb.PopulationSize, context):
         with self.poplock:
             if self.popln is None:
-                return pbc.Population(members=[], problemid="p1")
-            popSorted = sorted(self.popln, key=fitness)
+                return pbc.Population(members=[], problemID="p1")
+            popSorted = sorted(self.popln, key=lambda x: x[1])
             return popListTostring(popSorted[:request.size])
     @override
     def GetRandom(self, request: pb.PopulationSize, context):
@@ -194,18 +193,17 @@ class VolpeGreeterServicer(vp.VolpeContainerServicer):
         with self.poplock:
             ogLen = len(self.popln)
             popln = select(self.popln, ogLen)
-            indices = np.random.permutation(ogLen)
-            newpopln = [ np.array([]) for _ in range(ogLen) ]
+            newpopln = [ ]
             for i in range(0, ogLen, 2):
                 if np.random.random() < CXPROB:
-                    i1 = indices[i]
-                    i2 = indices[i+1]
+                    i1 = i
+                    i2 = i+1
                     n1, n2 = crossover(popln[i1], popln[i2])
-                    newpopln[i] = n1
-                    newpopln[i+1] = n2
+                    newpopln.append(n1)
+                    newpopln.append(n2)
                 else:
-                    newpopln[i] = popln[indices[i]]
-                    newpopln[i+1] = popln[indices[i+1]]
+                    newpopln.append(popln[i])
+                    newpopln.append(popln[i+1])
             self.popln = mutate_popln(newpopln)
             self.popln = expand(self.popln, ogLen*2)
             self.popln = select(self.popln, ogLen)
