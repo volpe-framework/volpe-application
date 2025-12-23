@@ -4,3 +4,5 @@
 **/__pycache__
 **/*.tar
 **/.ipynb_checkpoints/
+master/master
+worker/worker
