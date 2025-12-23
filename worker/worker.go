@@ -83,6 +83,13 @@ func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInsta
 			return
 		}
 		problemID := adjInst.GetProblemID()
+		instances := adjInst.GetInstances()
+		if instances == 0 {
+			if cm.HasProblem(problemID) {
+				cm.RemoveProblem(problemID)
+			}
+			continue
+		}
 		if !cm.HasProblem(problemID) {
 			fname, err := wc.GetImageFile(problemID)
 			if err != nil {

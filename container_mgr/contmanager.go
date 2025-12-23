@@ -78,6 +78,13 @@ func (cm *ContainerManager) RemoveProblem(problemID string) error {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
 
+	conts, ok := cm.problemContainers[problemID]
+	if !ok {
+		return nil
+	}
+	for _, cont := range conts {
+		cont.StopContainer()
+	}
 	delete(cm.problemContainers, problemID)
 
 	return nil
@@ -189,7 +196,7 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 		cm.problemContainers[problemID] = containers
 	} else if len(containers) > instances {
 		for i := instances; i < len(containers);  i++ {
-			containers[i].CloseContainer()
+			containers[i].StopContainer()
 		}
 		cm.problemContainers[problemID] = containers[:instances]
 	}

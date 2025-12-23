@@ -99,6 +99,15 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 	log.Info().Caller().Msgf("registered image %s", problemID)
 }
 
+func (va *VolpeAPI) DeleteProblem(c *gin.Context) {
+	problemID := c.Param("id")
+
+	if va.contman.HasProblem(problemID) {
+		va.contman.RemoveProblem(problemID)
+		va.sched.RemoveProblem(problemID)
+	}
+}
+
 func (va *VolpeAPI) StartProblem(c *gin.Context) {
 	problemID := c.Param("id")
 	if len(problemID) == 0 {
@@ -164,7 +173,7 @@ func (va *VolpeAPI) StreamResults (c *gin.Context) {
 }
 
 func (va *VolpeAPI) AbortProblem(c *gin.Context) {
-	problemID := c.Param("problemID")
+	problemID := c.Param("id")
 	va.sched.RemoveProblem(problemID)
 	va.contman.RemoveProblem(problemID)
 	c.Status(200)

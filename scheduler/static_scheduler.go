@@ -16,6 +16,7 @@ type Worker struct {
 type StaticScheduler struct {
 	problems []string
 	workers  []Worker
+	removeList []string
 	mut sync.Mutex
 }
 
@@ -71,6 +72,14 @@ func (ss *StaticScheduler) FillSchedule(sched Schedule) error {
 			sched.Set(w.workerID, p, w.cpuCount) 
 		}
 	}
+
+	for _, p := range ss.removeList {
+		for _, w := range ss.workers {
+			sched.Set(w.workerID, p, 0)
+		}
+	}
+	ss.removeList = slices.Delete(ss.removeList, 0, len(ss.removeList))
+
 	return nil
 }
 
@@ -82,6 +91,7 @@ func (ss *StaticScheduler) RemoveProblem(problemID string) {
 		return
 	}
 	ss.problems = slices.Delete(ss.problems, index, index+1)
+	ss.removeList = append(ss.removeList, problemID)
 }
 
 func (ss *StaticScheduler) AddProblem(problemID string) {

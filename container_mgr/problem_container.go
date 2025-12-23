@@ -24,6 +24,7 @@ type ProblemContainer struct {
 	commsClient ccomms.VolpeContainerClient
 	resultChannels map[chan *ccomms.ResultPopulation]bool
 	rcMut sync.Mutex
+	cancel context.CancelFunc
 }
 
 func genContainerName(problemID string) string {
@@ -52,12 +53,15 @@ func NewProblemContainer(problemID string, imagePath string, worker bool) (*Prob
 	}
 	pc.commsClient = ccomms.NewVolpeContainerClient(cc)
 
+	var ctx context.Context
+	ctx, pc.cancel = context.WithCancel(context.Background())
+
 	if !worker {
-		go pc.sendResults(context.TODO())
+		go pc.sendResults(ctx)
 	}
 
 	if worker {
-		go pc.runGenerations(context.TODO())
+		go pc.runGenerations(ctx)
 	}
 
 	return pc, nil
@@ -126,13 +130,14 @@ func (pc *ProblemContainer) HandleEvents(eventChannel chan *vcomms.AdjustPopulat
 	}
 }
 
-func (pc *ProblemContainer) sendResultOnce() {
+func (pc *ProblemContainer) sendResultOnce(ctx context.Context) {
 	pc.rcMut.Lock()
 	defer pc.rcMut.Unlock()
 
-	result, err := pc.commsClient.GetResults(context.Background(), &ccomms.PopulationSize{Size: 10})
+	result, err := pc.commsClient.GetResults(ctx, &ccomms.PopulationSize{Size: 10})
 	if err != nil {
 		log.Err(err).Caller().Msgf("fetching best popln for %s failed", pc.problemID)
+		return
 	}
 
 	for channel, _ := range pc.resultChannels {
@@ -144,28 +149,35 @@ func (pc *ProblemContainer) sendResults(ctx context.Context) {
 	for {
 		time.Sleep(5*time.Second)
 		if ctx.Err() != nil {
-			return
+			break
 		}
-		pc.sendResultOnce()
+		pc.sendResultOnce(ctx)
 	}
-
+	for channel, _ := range pc.resultChannels {
+		close(channel)
+	}
 }
 
 func (pc *ProblemContainer) runGenerations(ctx context.Context) {
 	for {
 		_, err := pc.commsClient.RunForGenerations(ctx, &ccomms.PopulationSize{Size: 3})
 		if err != nil {
+			if ctx.Err() != nil {
+				break
+			}
 			log.Err(err).Caller().Msgf("running gen for %s failed", pc.problemID)
 		}
 	}
+	log.Info().Caller().Msgf("stopping gen for %s", pc.problemID)
 }
 
-func (pc *ProblemContainer) CloseContainer() {
+func (pc *ProblemContainer) StopContainer() {
 	podman, err := NewPodmanConnection()
 	if err != nil {
 		log.Err(err).Caller().Msgf("container name: %s", pc.containerName)
 		return
 	}
+	pc.cancel()
 	forceRemove := true
 	options := containers.RemoveOptions{
 		Force: &forceRemove,

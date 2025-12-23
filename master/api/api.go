@@ -10,6 +10,7 @@ func RunAPI(port int, api *VolpeAPI) {
 	r := gin.Default()
 
 	r.POST("/problems/:id", api.RegisterProblem)
+	r.DELETE("/problems/:id", api.DeleteProblem)
 	r.GET("/problems/:id/results", api.StreamResults)
 	r.PUT("/problems/:id/start", api.StartProblem)
 	r.Any("/problems/:id/abort", api.AbortProblem)

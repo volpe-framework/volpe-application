@@ -8,8 +8,10 @@ dependencies = [
     "deap>=1.4.3",
     "grpcio-tools>=1.75.1",
     "jupyter>=1.1.1",
+    "matplotlib==3.7.0",
     "numpy>=2.3.5",
     "opfunu>=1.0.4",
     "pandas>=2.3.3",
     "scoop>=0.7.2.0",
+    "tikzplotlib>=0.10.1",
 ]
