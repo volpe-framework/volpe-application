@@ -43,13 +43,15 @@ func main() {
 	metricChan := make(chan *vcomms.MetricsMessage, 10)
 	popChan := make(chan *ccomms.Population, 10)
 
-	mc, err := vcomms.NewMasterComms(portD, metricChan, popChan, sched)
+
+	problemStore, _ := model.NewProblemStore()
+
+	mc, err := vcomms.NewMasterComms(portD, metricChan, popChan, sched, problemStore)
 	if err != nil {
 		log.Fatal().Caller().Msgf("error initializing master comms: %s", err.Error())
 		panic(err)
 	}
 
-	problemStore, _ := model.NewProblemStore()
 
 	api, err := apilib.NewVolpeAPI(problemStore, sched, cman)
 	if err != nil {

@@ -8,7 +8,6 @@ import (
 
 	vcomms "volpe-framework/comms/volpe"
 	contman "volpe-framework/container_mgr"
-	// "volpe-framework/metrics"
 
 	"github.com/rs/zerolog/log"
 )
@@ -38,14 +37,6 @@ func main() {
 	go cm.RunMetricsExport(wc, workerID)
 
 	go populationExtractor(cm, wc)
-
-	// err = cm.AddProblem("problem1", "../comms/pybindings/grpc_test_img.tar")
-	// if err != nil {
-	// 	log.Fatal().Caller().Msgf("failed to run pod with error: %s", err.Error())
-	// 	panic(err)
-	// }
-	// TODO: stop container
-	// defer cm.StopContainer(containerName)
 
 	adjInstChan := make(chan *vcomms.AdjustInstancesMessage, 10)
 

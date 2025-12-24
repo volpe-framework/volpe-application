@@ -22,6 +22,10 @@ type MasterComms struct {
 	lis net.Listener
 }
 
+type ProblemStore interface {
+	GetFileName(problemID string) (string, bool)
+}
+
 type masterCommsServer struct {
 	UnimplementedVolpeMasterServer
 	chans_mut  sync.RWMutex
@@ -29,6 +33,7 @@ type masterCommsServer struct {
 	metricChan chan *MetricsMessage
 	popChan    chan *common.Population
 	sched SchedulerComms
+	probStore  ProblemStore
 }
 
 type SchedulerComms interface {
@@ -135,8 +140,11 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 
 func (mcs *masterCommsServer) GetImage(req *ImageRequest, stream grpc.ServerStreamingServer[common.ImageStreamObject]) error {
 	problemID := req.GetProblemID()
-	// TODO: image path config
-	fname := problemID + ".tar"
+	fname, ok := mcs.probStore.GetFileName(problemID)
+	if !ok {
+		log.Error().Caller().Msgf("missing image for PID %s", problemID)
+		return nil
+	}
 	file, err := os.Open(fname)
 	if err != nil {
 		log.Error().Caller().Msgf(err.Error())
@@ -177,7 +185,7 @@ func (mcs *masterCommsServer) GetImage(req *ImageRequest, stream grpc.ServerStre
 
 func (mcs *masterCommsServer) mustEmbedUnimplementedVolpeMasterServer() {}
 
-func NewMasterComms(port uint16, metricChan chan *MetricsMessage, popChan chan *common.Population, sched SchedulerComms) (*MasterComms, error) {
+func NewMasterComms(port uint16, metricChan chan *MetricsMessage, popChan chan *common.Population, sched SchedulerComms, probStore ProblemStore) (*MasterComms, error) {
 	mc := new(MasterComms)
 	err := initMasterCommsServer(&mc.mcs, metricChan)
 	if err != nil {
@@ -199,6 +207,7 @@ func NewMasterComms(port uint16, metricChan chan *MetricsMessage, popChan chan *
 	mc.mcs.sched = sched
 	mc.mcs.popChan = popChan
 	mc.mcs.metricChan = metricChan
+	mc.mcs.probStore = probStore
 
 	RegisterVolpeMasterServer(sr, &mc.mcs)
 

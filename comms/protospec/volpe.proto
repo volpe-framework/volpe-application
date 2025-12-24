@@ -36,6 +36,7 @@ message AdjustPopulationMessage {
 message WorkerHello {
   WorkerID workerID = 1;
   int32 cpuCount = 2;
+  float memoryGB = 3;
 }
 
 message WorkerMessage {

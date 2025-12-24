@@ -11,6 +11,8 @@ import (
 	"volpe-framework/master/model"
 	"volpe-framework/scheduler"
 
+	"volpe-framework/types"
+
 	"encoding/json"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +40,7 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 		c.AbortWithStatusJSON(400, Response{Success: false, Message: "Missing path param id"})
 		return
 	}
-	
+
 	req := c.Request
 
 	err := req.ParseMultipartForm(32<<20)
@@ -61,6 +63,8 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 
 	type imageMetaData struct {
 		ProblemID string `json:"problemID"`
+		Memory float32 `json:"memory"`
+		TargetInstances int32 `json:"targetInstances"`
 	}
 
 	metaData := imageMetaData{}
@@ -93,7 +97,11 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 	problemID = metaData.ProblemID
 
 	// TODO: proper file names and path for image
-	va.probstore.NewProblem(problemID)
+	va.probstore.NewProblem(types.Problem{
+		ProblemID: problemID,
+		MemoryUsage: metaData.Memory,
+		IslandCount: metaData.TargetInstances,
+	})
 	va.probstore.RegisterImage(problemID, fname)
 
 	log.Info().Caller().Msgf("registered image %s", problemID)
@@ -116,6 +124,12 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 	}
 
 	fname := problemID + ".tar"
+
+	fname, ok := va.probstore.GetFileName(problemID)
+	if !ok {
+		c.Status(404)
+		return
+	}
 
 	va.sched.AddProblem(problemID)
 	va.contman.AddProblem(problemID, fname, 1)

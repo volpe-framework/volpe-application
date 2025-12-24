@@ -51,6 +51,8 @@ func NewWorkerComms(endpoint string, workerID string) (*WorkerComms, error) {
 			Hello: &WorkerHello{
 				WorkerID: &WorkerID{Id: workerID},
 				CpuCount: int32(runtime.NumCPU()),
+				// TODO: use system config
+				MemoryGB: 4,
 			},
 		},
 	})
