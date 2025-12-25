@@ -124,6 +124,9 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 	}
 
 	fname := problemID + ".tar"
+	
+	var problem types.Problem
+	va.probstore.GetMetadata(problemID, &problem)
 
 	fname, ok := va.probstore.GetFileName(problemID)
 	if !ok {
@@ -131,7 +134,7 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 		return
 	}
 
-	va.sched.AddProblem(problemID)
+	va.sched.AddProblem(problem)
 	va.contman.AddProblem(problemID, fname, 1)
 	c.Status(200)
 }

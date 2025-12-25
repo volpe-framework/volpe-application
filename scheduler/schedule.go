@@ -4,9 +4,13 @@ import "strings"
 
 type Schedule map[string]int32
 
-func (s Schedule) Get(workerID string, problemID string) (int32, bool) {
+func (s Schedule) Get(workerID string, problemID string) int32 {
 	v, ok := s[problemID+"@"+workerID]
-	return v, ok
+	if ok {
+		return v
+	} else {
+		return 0
+	}
 }
 
 func (s Schedule) Set(workerID string, problemID string, val int32) {

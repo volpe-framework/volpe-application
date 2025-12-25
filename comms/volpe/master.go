@@ -9,6 +9,7 @@ import (
 	"os"
 	"sync"
 	"volpe-framework/comms/common"
+	"volpe-framework/types"
 
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -37,7 +38,7 @@ type masterCommsServer struct {
 }
 
 type SchedulerComms interface {
-	AddWorker(workerID string, cpuCount int32);
+	AddWorker(worker types.Worker);
 	RemoveWorker(workerID string);
 }
 
@@ -130,7 +131,11 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 	mcs.channs[workerID] = masterSendChan
 	mcs.chans_mut.Unlock()
 
-	mcs.sched.AddWorker(workerID, workerHelloMsg.GetCpuCount())
+	mcs.sched.AddWorker(types.Worker{
+		WorkerID: workerID, 
+		CpuCount: workerHelloMsg.GetCpuCount(),
+		MemoryGB: workerHelloMsg.GetMemoryGB(),
+	})
 
 	mcsStreamHandlerThread(workerID, stream, masterSendChan, mcs.metricChan, mcs.popChan)
 

@@ -22,7 +22,7 @@ func main() {
 	// TODO: reenable when required
 	// metrics.InitOTelSDK()
 
-	sched, err := scheduler.NewStaticScheduler()
+	sched, err := scheduler.NewPrelimScheduler()
 	if err != nil {
 		log.Error().Caller().Msgf("err with sched: %s", err.Error())
 		panic(err)
@@ -42,7 +42,6 @@ func main() {
 
 	metricChan := make(chan *vcomms.MetricsMessage, 10)
 	popChan := make(chan *ccomms.Population, 10)
-
 
 	problemStore, _ := model.NewProblemStore()
 
@@ -130,6 +129,6 @@ func applySchedule(master *vcomms.MasterComms, cman *cm.ContainerManager, sched 
 			}
 		})
 		log.Info().Caller().Msg("Applied schedule")
-		time.Sleep(10*time.Second)
+		time.Sleep(5*time.Second)
 	}
 }

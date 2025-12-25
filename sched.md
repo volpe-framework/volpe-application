@@ -11,7 +11,6 @@ essentially a packing problem
 
 assign problems in highest memory to lowest memory, 1 per device till cap is met
 
-
 ## Formulation
 
 p_i - memory needed for problem i

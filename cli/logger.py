@@ -81,12 +81,15 @@ def consume_sse(base_url, problem_id, output_filepath):
     
     # Buffer for collecting partial events
     buffer = ""
+
+    cur_start = time.time()
     
     for chunk in response.iter_content(chunk_size=1, decode_unicode=True):
         if not chunk:
             continue
         
         buffer += chunk
+        done = False
         
         # Check for the SSE event delimiter (\n\n)
         if "\n\n" in buffer:
@@ -111,6 +114,10 @@ def consume_sse(base_url, problem_id, output_filepath):
                             
                             # Log immediately to CSV
                             log_to_csv(output_filepath, problem_id, best_individual)
+                            if time.time() >= 30:
+                                print("time crossed 660, done")
+                                done = True
+                                break
                             
                         else:
                             print("-> Received empty population data.")
@@ -119,7 +126,8 @@ def consume_sse(base_url, problem_id, output_filepath):
                         print(f"Error decoding JSON: {json_data[:80]}...", file=sys.stderr)
                     except Exception as e:
                         print(f"Error processing data: {e}", file=sys.stderr)
-
+            if done:
+                break
     print("SSE stream closed by server.")
 
 if __name__ == "__main__":
