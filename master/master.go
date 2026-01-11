@@ -121,7 +121,7 @@ func applySchedule(master *vcomms.MasterComms, cman *cm.ContainerManager, sched 
 					AdjInst: adjpop,
 				},
 			}
-			log.Info().Caller().Msgf("worker %s problem %s pop %s", workerID, problemID, val)
+			log.Info().Caller().Msgf("worker %s problem %s pop %d", workerID, problemID, val)
 			err = master.SendPopulationSize(workerID, &msg)
 			if err != nil {
 				log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())

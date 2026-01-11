@@ -166,6 +166,7 @@ func (pc *ProblemContainer) runGenerations(ctx context.Context) {
 				break
 			}
 			log.Err(err).Caller().Msgf("running gen for %s failed", pc.problemID)
+			time.Sleep(5*time.Second)
 		}
 	}
 	log.Info().Caller().Msgf("stopping gen for %s", pc.problemID)

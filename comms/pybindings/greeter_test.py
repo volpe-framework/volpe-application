@@ -10,7 +10,7 @@ from opfunu.cec_based.cec2022 import *
 
 NDIM=20
 
-func = F72022(ndim=NDIM)
+func = F122022(ndim=NDIM)
 
 LOW = func.lb[0]
 HIGH = func.ub[0]
