@@ -185,7 +185,7 @@ func (pc *ProblemContainer) StopContainer() {
 	}
 	_, err = containers.Remove(podman, pc.containerName, &options)
 	if err != nil {
-		log.Err(err).Caller().Msgf("container name: %s", pc.containerName)
+		log.Err(err).Caller().Msgf("err removing container: %s", pc.containerName)
 		return
 	}
 }

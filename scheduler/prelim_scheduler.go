@@ -103,12 +103,13 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 			}
 			for _, p := range ss.problems {
 				pMem := max(0.5, p.MemoryUsage)
-				if remainingMem >= pMem {
+				if pMem == 0.5 {
+					log.Warn().Msgf("Invalid memory for %s", p.ProblemID)
+				}
+				if remainingMem > pMem {
 					sched.Set(w.WorkerID, p.ProblemID, sched.Get(w.WorkerID, p.ProblemID)+1) 
 					remainingMem -= pMem
-					// remI := islandsRemaining[p.ProblemID]
-					// remI -= 1
-					// islandsRemaining[p.ProblemID] = remI
+
 					changeCount += 1
 					log.Info().Msgf("Added problem %s to worker %s", p.ProblemID, w.WorkerID)
 				}
@@ -121,6 +122,7 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 	for _, p := range ss.removeList {
 		for _, w := range ss.workers {
 			sched.Set(w.WorkerID, p, 0)
+			log.Info().Msgf("removing problem %s on scheduler for worker %s", p, w.WorkerID)
 		}
 	}
 	ss.removeList = slices.Delete(ss.removeList, 0, len(ss.removeList))

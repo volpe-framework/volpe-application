@@ -77,6 +77,7 @@ func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInsta
 		instances := adjInst.GetInstances()
 		if instances == 0 {
 			if cm.HasProblem(problemID) {
+				log.Info().Msgf("stopping problem %s", problemID)
 				cm.RemoveProblem(problemID)
 			}
 			continue

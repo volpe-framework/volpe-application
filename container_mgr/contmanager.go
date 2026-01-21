@@ -83,6 +83,7 @@ func (cm *ContainerManager) RemoveProblem(problemID string) error {
 		return nil
 	}
 	for _, cont := range conts {
+		log.Info().Msgf("Stopping container for problem: %s", problemID)
 		cont.StopContainer()
 	}
 	delete(cm.problemContainers, problemID)

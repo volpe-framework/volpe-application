@@ -136,7 +136,7 @@ def create_problem(base_url, problem_id, image_path):
     # Prepare metadata as JSON string
     metadata = {
         "problemID": problem_id,
-        "memory": 0.9,
+        "memory": 1.0,
         "targetInstances": 8
     }
     
@@ -174,9 +174,10 @@ def start_problem(base_url, problem_id):
 def stop_problem(base_url, problem_id):
     """Stops/aborts the problem via the API."""
     url = f"{base_url}/problems/{problem_id}/abort"
+    print("STOP URL:", url)
     
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=30)
         response.raise_for_status()
         print(f"✓ Problem {problem_id} stopped")
         return True
@@ -211,14 +212,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--runs",
         type=int,
-        default=10,
-        help="Number of times to run the problem (default: 10)."
+        default=1,
+        help="Number of times to run the problem (default: 1)."
     )
     parser.add_argument(
         "--stop-time",
         type=int,
-        default=200,
-        help="Number of seconds to run each problem before stopping (default: 200)."
+        default=10000000,
+        help="Number of seconds to run each problem before stopping (default: 10000000)."
     )
 
     args = parser.parse_args()
@@ -233,30 +234,35 @@ if __name__ == "__main__":
     # Step 1: Create the problem once
     print("\n[Step 1] Creating problem...")
     problem_id = create_problem(args.base_url, args.problem_name, args.image_path)
+
+    best_soln = ""
     
     # Step 2: Run the problem multiple times
     print(f"\n[Step 2] Running problem {args.runs} times...")
     for run_no in range(1, args.runs + 1):
-        output_filename = f"{args.problem_name}_run{run_no}.csv"
-        
-        print(f"\n--- Run {run_no}/{args.runs} ---")
-        print(f"Log Path: {output_filename}")
-        
-        # Start the problem
-        if not start_problem(args.base_url, problem_id):
-            print(f"Skipping run {run_no} due to start failure.")
-            continue
-        
-        # Consume SSE and log results
-        global start_time
-        start_time = time.time()
-        consume_sse(args.base_url, problem_id, output_filename, args.stop_time)
-        
+        try:
+            output_filename = f"{args.problem_name}_run{run_no}.csv"
+            
+            print(f"\n--- Run {run_no}/{args.runs} ---")
+            print(f"Log Path: {output_filename}")
+            
+            # Start the problem
+            if not start_problem(args.base_url, problem_id):
+                print(f"Skipping run {run_no} due to start failure.")
+                continue
+            
+            # Consume SSE and log results
+            global start_time
+            start_time = time.time()
+            consume_sse(args.base_url, problem_id, output_filename, args.stop_time)
+        except KeyboardInterrupt:
+            print("INTERRUPTED")
+            
         print(f"✓ Run {run_no} completed")
-        
+            
         # Stop the problem after each run
         stop_problem(args.base_url, problem_id)
-        
+            
         # Small delay between runs
         if run_no < args.runs:
             time.sleep(1)
