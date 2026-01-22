@@ -52,7 +52,7 @@ func (cm *ContainerManager) AddProblem(problemID string, imagePath string, insta
 	_, ok := cm.problemContainers[problemID]
 	cm.images[problemID] = imagePath
 	if ok {
-		log.Warn().Caller().Msgf("retried creating PC for pID %s, ignoring", problemID)
+		log.Warn().Caller().Msgf("Retried creating PC for pID %s, ignoring", problemID)
 		// WARN: if supporting updating container, must change cm.containers here
 		return errors.New("problemID already has container")
 	}
@@ -91,7 +91,7 @@ func (cm *ContainerManager) RemoveProblem(problemID string) error {
 	return nil
 }
 
-func (cm *ContainerManager) GetSubpopulations() ([]*common.Population, error) {
+func (cm *ContainerManager) GetSubpopulations(perContainer int) ([]*common.Population, error) {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
 	pops := make([]*common.Population, len(cm.problemContainers))
@@ -102,7 +102,7 @@ func (cm *ContainerManager) GetSubpopulations() ([]*common.Population, error) {
 		population.Members = make([]*common.Individual, 0)
 		population.ProblemID = &pid
 		for _, cont := range contList {
-			tmp, err := cont.GetSubpopulation()
+			tmp, err := cont.GetSubpopulation(perContainer)
 			if err != nil {
 				log.Error().Caller().Msgf("error fetching subpop on %s: %s", pid, err.Error())
 				return nil, err
@@ -118,7 +118,7 @@ func (cm *ContainerManager) GetSubpopulations() ([]*common.Population, error) {
 	return pops, nil
 }
 
-func (cm *ContainerManager) GetRandomSubpopulation(problemID string) (*common.Population, error) {
+func (cm *ContainerManager) GetRandomSubpopulation(problemID string, perContainer int) (*common.Population, error) {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
 
@@ -131,7 +131,7 @@ func (cm *ContainerManager) GetRandomSubpopulation(problemID string) (*common.Po
 	population.ProblemID = &problemID
 
 	for _, container := range(containers) {
-		subpop, err := container.GetRandomSubpopulation()
+		subpop, err := container.GetRandomSubpopulation(perContainer)
 		if err != nil {
 			return nil, err
 		}
@@ -153,8 +153,14 @@ func (cm *ContainerManager) IncorporatePopulation(pop *common.Population) {
 		log.Error().Caller().Msgf("problemID %s nonexistent for incorp. population", pop.GetProblemID())
 		return
 	}
-	for _, cont := range(containers) {
-		reply, err := cont.commsClient.InitFromSeedPopulation(context.Background(), pop)
+
+	perContainer := len(pop.Members)/len(containers)
+	for i, cont := range(containers) {
+		newpop := common.Population{
+			ProblemID: pop.ProblemID, 
+			Members: pop.Members[i*perContainer:(i+1)*perContainer],
+		}
+		reply, err := cont.commsClient.InitFromSeedPopulation(context.Background(), &newpop)
 		if err != nil {
 			log.Error().Caller().Msgf("couldn't incorp popln for problemID %s: %s",
 				pop.GetProblemID(),
@@ -177,13 +183,14 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 	defer cm.pcMut.Unlock()
 	containers, ok := cm.problemContainers[event.GetProblemID()]
 	if !ok {
-		log.Error().Caller().Msgf("received msg for problem ID %s, but problem container does not exist, creation not handled yet", event.GetProblemID())
+		log.Error().Caller().Msgf("Received msg for problem ID %s, but problem container does not exist, creation not handled yet", event.GetProblemID())
 		// TODO: add logic to create container on worker
 		return
 	}
 	problemID := event.GetProblemID()
 	instances := int(event.GetInstances())
 	if len(containers) < instances {
+		log.Info().Msgf("Increasing instance count for problem %s to %d", problemID, instances)
 		containers = slices.Grow(containers, instances-len(containers))
 		for i := len(containers); i < instances; i++ {
 			pc, err := NewProblemContainer(problemID, cm.images[problemID], cm.worker)
@@ -196,13 +203,22 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 		}
 		cm.problemContainers[problemID] = containers
 	} else if len(containers) > instances {
+		log.Info().Msgf("Decreasing instance count for problem %s to %d", problemID, instances)
 		for i := instances; i < len(containers);  i++ {
 			containers[i].StopContainer()
 		}
 		cm.problemContainers[problemID] = containers[:instances]
+		containers = containers[:instances]
 	}
-	for _, cont := range(containers) {
-		_, err := cont.commsClient.InitFromSeedPopulation(context.Background(), event.GetSeed())
+	seedPop := event.GetSeed().Members
+	perContainer := len(seedPop)/len(containers)
+	log.Debug().Msgf("Problem: %s Instances: %d SeedPop: %d", problemID, instances, len(seedPop))
+	for i, cont := range(containers) {
+		newPop := common.Population{
+			ProblemID: &problemID,
+			Members: seedPop[i*perContainer:(i+1)*perContainer],
+		}
+		_, err := cont.commsClient.InitFromSeedPopulation(context.Background(), &newPop)
 		if err != nil {
 			log.Error().Caller().Msgf("error incorporating popln %s: %s", problemID, err.Error())
 			return

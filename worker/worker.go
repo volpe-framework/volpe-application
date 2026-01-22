@@ -9,12 +9,15 @@ import (
 	vcomms "volpe-framework/comms/volpe"
 	contman "volpe-framework/container_mgr"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	// TODO: reenable when required
 	// metrics.InitOTelSDK()
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 
 	endpoint, ok := os.LookupEnv("VOLPE_MASTER")
 	if !ok {
@@ -48,7 +51,8 @@ func main() {
 func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {
 	// extracts popln every X seconds and sends to master
 	for {
-		pops, err := cm.GetSubpopulations()
+		// TODO: make this a parameter
+		pops, err := cm.GetSubpopulations(10)
 		if err == nil {
 			for _, pop := range pops {
 				err = wc.SendSubPopulation(pop)
@@ -93,7 +97,7 @@ func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInsta
 				log.Error().Caller().Msgf("error running problem %s: %s", problemID, err.Error())
 				continue
 			}
-			log.Info().Caller().Msgf("running new problem %s", problemID)
+			log.Info().Caller().Msgf("Running new problem %s", problemID)
 		}
 		cm.HandleInstancesEvent(adjInst)
 	}

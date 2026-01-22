@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sync"
 	"time"
 	ccomms "volpe-framework/comms/common"
 	vcomms "volpe-framework/comms/volpe"
@@ -16,11 +17,14 @@ import (
 	model "volpe-framework/master/model"
 
 	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 func main() {
 	// TODO: reenable when required
 	// metrics.InitOTelSDK()
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 
 	sched, err := scheduler.NewPrelimScheduler()
 	if err != nil {
@@ -60,11 +64,16 @@ func main() {
 	apilib.RunAPI(8000, api)
 	log.Info().Caller().Msgf("master API listening on port %d", 8000)
 
+	schedule := make(scheduler.Schedule)
+	var schedMutex sync.Mutex
+
 	go sendMetric(metricChan, sched)
 
 	go recvPopulation(cman, popChan)
 
-	go applySchedule(mc, cman, sched)
+	go applySchedule(sched, schedule, &schedMutex)
+
+	go sendPopulation(mc, cman, schedule, &schedMutex)
 
 	mc.Serve()
 }
@@ -92,16 +101,11 @@ func sendMetric(metricChan chan *vcomms.MetricsMessage, sched scheduler.Schedule
 		sched.UpdateMetrics(m)
 	}
 }
- 
-func applySchedule(master *vcomms.MasterComms, cman *cm.ContainerManager, sched scheduler.Scheduler) {
-	// TODO: optimise by calculating deltas
-	schedule := make(scheduler.Schedule)
+
+func sendPopulation(master *vcomms.MasterComms, cman *cm.ContainerManager, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
 	for {
-		err := sched.FillSchedule(schedule)
-		if err != nil {
-			log.Error().Caller().Msgf("error filling sched: %s", err.Error())
-			return
-		}
+		schedMutex.Lock()
+
 		schedule.Apply(func (workerID string, problemID string, val int32) {
 			adjpop := &vcomms.AdjustInstancesMessage{
 				ProblemID: problemID,
@@ -109,7 +113,50 @@ func applySchedule(master *vcomms.MasterComms, cman *cm.ContainerManager, sched 
 				Instances: val,
 			}
 			if val != 0 {
-				subpop, err := cman.GetRandomSubpopulation(problemID)
+				// TODO: pop sizes parameter
+				subpop, err := cman.GetRandomSubpopulation(problemID, 10*int(val))
+				if err != nil {
+					log.Error().Caller().Msgf("error getting subpop wID %s pID %s to update schedule: %s", workerID, problemID, err.Error())
+					return
+				}
+				adjpop.Seed = subpop
+			}
+			msg := vcomms.MasterMessage{
+				Message: &vcomms.MasterMessage_AdjInst{
+					AdjInst: adjpop,
+				},
+			}
+			log.Info().Caller().Msgf("worker %s problem %s pop %d", workerID, problemID, val)
+			err := master.SendPopulationSize(workerID, &msg)
+			if err != nil {
+				log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())
+				return
+			}
+		})
+
+		schedMutex.Unlock()
+		log.Debug().Msg("Sent schedule")
+		time.Sleep(5*time.Second)
+	}
+}
+
+func applySchedule(sched scheduler.Scheduler, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
+	for {
+		schedMutex.Lock()
+		err := sched.FillSchedule(schedule)
+		if err != nil {
+			log.Error().Caller().Msgf("error filling sched: %s", err.Error())
+			return
+		}
+		/* Moved applying changes to diff call
+		schedule.Apply(func (workerID string, problemID string, val int32) {
+			adjpop := &vcomms.AdjustInstancesMessage{
+				ProblemID: problemID,
+				Seed: nil, 
+				Instances: val,
+			}
+			if val != 0 {
+				subpop, err := cman.GetRandomSubpopulation(problemID, val)
 				if err != nil {
 					log.Error().Caller().Msgf("error getting subpop wID %s pID %s to update schedule: %s", workerID, problemID, err.Error())
 					return
@@ -128,7 +175,9 @@ func applySchedule(master *vcomms.MasterComms, cman *cm.ContainerManager, sched 
 				return
 			}
 		})
-		log.Info().Caller().Msg("Applied schedule")
+		*/
+		log.Info().Caller().Msg("Modified schedule")
+		schedMutex.Unlock()
 		time.Sleep(5*time.Second)
 	}
 }

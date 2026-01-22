@@ -85,9 +85,8 @@ func (pc *ProblemContainer) DeRegisterResultChannel(channel chan *ccomms.ResultP
 	delete(pc.resultChannels, channel)
 }
 
-func (pc *ProblemContainer) GetRandomSubpopulation() (*comms.Population, error) {
-	// TODO: best population size config
-	pop, err := pc.commsClient.GetRandom(context.Background(), &ccomms.PopulationSize{Size: 10})
+func (pc *ProblemContainer) GetRandomSubpopulation(count int) (*comms.Population, error) {
+	pop, err := pc.commsClient.GetRandom(context.Background(), &ccomms.PopulationSize{Size: int32(count)})
 	if err != nil {
 		log.Error().Caller().Msg(err.Error())
 		return nil, err
@@ -96,9 +95,8 @@ func (pc *ProblemContainer) GetRandomSubpopulation() (*comms.Population, error) 
 	return pop, nil
 }
 
-func (pc *ProblemContainer) GetSubpopulation() (*comms.Population, error) {
-	// TODO: best population size config
-	pop, err := pc.commsClient.GetBestPopulation(context.Background(), &ccomms.PopulationSize{Size: 10})
+func (pc *ProblemContainer) GetSubpopulation(count int) (*comms.Population, error) {
+	pop, err := pc.commsClient.GetBestPopulation(context.Background(), &ccomms.PopulationSize{Size: int32(count)})
 	if err != nil {
 		log.Error().Caller().Msg(err.Error())
 		return nil, err
@@ -160,7 +158,9 @@ func (pc *ProblemContainer) sendResults(ctx context.Context) {
 
 func (pc *ProblemContainer) runGenerations(ctx context.Context) {
 	for {
+		// TODO: configure generation run count
 		_, err := pc.commsClient.RunForGenerations(ctx, &ccomms.PopulationSize{Size: 3})
+		log.Debug().Msgf("Ran 3 generations for container %s", pc.containerName)
 		if err != nil {
 			if ctx.Err() != nil {
 				break

@@ -104,17 +104,16 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 			for _, p := range ss.problems {
 				pMem := max(0.5, p.MemoryUsage)
 				if pMem == 0.5 {
-					log.Warn().Msgf("Invalid memory for %s", p.ProblemID)
+					log.Warn().Msgf("Invalid memory for Problem %s", p.ProblemID)
 				}
-				if remainingMem > pMem {
+				if remainingMem >= pMem {
 					sched.Set(w.WorkerID, p.ProblemID, sched.Get(w.WorkerID, p.ProblemID)+1) 
 					remainingMem -= pMem
-
 					changeCount += 1
-					log.Info().Msgf("Added problem %s to worker %s", p.ProblemID, w.WorkerID)
+					// log.Info().Msgf("Added problem %s to worker %s", p.ProblemID, w.WorkerID)
 				}
 			}
-			log.Info().Msgf("worker %s remaining mem %f", w.WorkerID, remainingMem)
+			// log.Info().Msgf("worker %s remaining mem %f", w.WorkerID, remainingMem)
 			workersRemainingMem[w.WorkerID] = remainingMem
 		}
 	}
@@ -122,10 +121,11 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 	for _, p := range ss.removeList {
 		for _, w := range ss.workers {
 			sched.Set(w.WorkerID, p, 0)
-			log.Info().Msgf("removing problem %s on scheduler for worker %s", p, w.WorkerID)
+			log.Info().Msgf("Removing problem %s on scheduler for worker %s", p, w.WorkerID)
 		}
 	}
-	ss.removeList = slices.Delete(ss.removeList, 0, len(ss.removeList))
+	ss.removeList = make([]string, 0)
+	// ss.removeList = slices.Delete(ss.removeList, 0, len(ss.removeList))
 
 	return nil
 }
