@@ -7,10 +7,16 @@ import argparse
 import datetime
 import re
 import os # Added os import at the top level
+import hashlib
 
 # --- Configuration ---
 DEFAULT_BASE_URL = "http://localhost:8000"
 # LOG_INTERVAL_SECONDS and LAST_LOG_TIME removed as logging is now immediate
+
+def compute_genotype_hash(genotype):
+    """Computes the SHA256 hash of a genotype string."""
+    genotype_str = str(genotype).strip()
+    return hashlib.sha256(genotype_str.encode()).hexdigest()
 
 def find_best_individual(population):
     """Finds the individual with the minimum fitness (assuming minimization)."""
@@ -58,7 +64,38 @@ def log_to_csv(filepath, problem_id, best_individual):
     except Exception as e:
         print(f"Error writing to CSV file: {e}", file=sys.stderr)
 
-def consume_sse(base_url, problem_id, output_filepath, stop_time=200):
+def log_to_summary_csv(filepath, run_no, best_individual, timestamp):
+    """Writes to the summary CSV file with run_no, best_fitness, genotype_hash, genotype, and timestamp."""
+    fitness = best_individual.get("fitness")
+    genotype = best_individual.get("genotype", "")
+    
+    # Compute hash of genotype
+    genotype_hash = compute_genotype_hash(genotype)
+    
+    # Round timestamp to int
+    timestamp_int = int(round(timestamp))
+    
+    # Prepare CSV row
+    row = [run_no, fitness, genotype_hash, genotype, timestamp_int]
+    
+    try:
+        # Check if file exists to determine if header is needed
+        is_new_file = not os.path.exists(filepath)
+        
+        with open(filepath, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            
+            # Write header only if the file is newly created
+            if is_new_file:
+                writer.writerow(["run_no", "best_fitness", "genotype_hash", "genotype", "timestamp"])
+            
+            # Write data row
+            writer.writerow(row)
+            
+    except Exception as e:
+        print(f"Error writing to summary CSV file: {e}", file=sys.stderr)
+
+def consume_sse(base_url, problem_id, output_filepath, summary_filepath, run_no, stop_time=200):
     """Establishes SSE connection and processes incoming events."""
     print(f"Connecting to SSE stream for problem ID: {problem_id}")
     
@@ -82,6 +119,12 @@ def consume_sse(base_url, problem_id, output_filepath, stop_time=200):
     buffer = ""
 
     cur_start = time.time()
+    
+    # Track initial fitness to detect when EA starts improving
+    initial_fitness = None
+    last_fitness = None
+    plateau_end_time = None
+    initial_entry_logged = False
     
     for chunk in response.iter_content(chunk_size=1, decode_unicode=True):
         if not chunk:
@@ -111,6 +154,28 @@ def consume_sse(base_url, problem_id, output_filepath, stop_time=200):
                             
                             print(f"-> Received Fitness: {best_fitness:.4f}")
                             
+                            # Track initial fitness
+                            if initial_fitness is None:
+                                initial_fitness = best_fitness
+                                last_fitness = best_fitness
+                            
+                            # Check if fitness improved (end of plateau)
+                            if plateau_end_time is None and best_fitness < initial_fitness:
+                                plateau_end_time = time.time()
+                                last_fitness = best_fitness
+                                # Log initial entry when plateau ends (first improvement)
+                                current_timestamp = time.time() - plateau_end_time
+                                log_to_summary_csv(summary_filepath, run_no, best_individual, current_timestamp)
+                                initial_entry_logged = True
+                                print(f"-> Plateau ended, logged initial entry with fitness {best_fitness:.4f}")
+                            
+                            # Log subsequent improvements relative to plateau end time
+                            elif plateau_end_time is not None and best_fitness < last_fitness:
+                                last_fitness = best_fitness
+                                current_timestamp = time.time() - plateau_end_time
+                                log_to_summary_csv(summary_filepath, run_no, best_individual, current_timestamp)
+                                print(f"-> Fitness improved to {best_fitness:.4f}, logged to summary")
+                            
                             # Log immediately to CSV
                             log_to_csv(output_filepath, problem_id, best_individual)
                             if time.time() - cur_start >= stop_time:
@@ -136,8 +201,8 @@ def create_problem(base_url, problem_id, image_path):
     # Prepare metadata as JSON string
     metadata = {
         "problemID": problem_id,
-        "memory": 1.0,
-        "targetInstances": 8
+        "memory": 0.5,
+        "targetInstances": 12
     }
     
     try:
@@ -242,9 +307,11 @@ if __name__ == "__main__":
     for run_no in range(1, args.runs + 1):
         try:
             output_filename = f"{args.problem_name}_run{run_no}.csv"
+            summary_filename = f"{args.problem_name}_summary.csv"
             
             print(f"\n--- Run {run_no}/{args.runs} ---")
             print(f"Log Path: {output_filename}")
+            print(f"Summary Path: {summary_filename}")
             
             # Start the problem
             if not start_problem(args.base_url, problem_id):
@@ -254,7 +321,7 @@ if __name__ == "__main__":
             # Consume SSE and log results
             global start_time
             start_time = time.time()
-            consume_sse(args.base_url, problem_id, output_filename, args.stop_time)
+            consume_sse(args.base_url, problem_id, output_filename, summary_filename, run_no, args.stop_time)
         except KeyboardInterrupt:
             print("INTERRUPTED")
             
@@ -265,6 +332,6 @@ if __name__ == "__main__":
             
         # Small delay between runs
         if run_no < args.runs:
-            time.sleep(1)
+            time.sleep(15)
     
     print(f"\n✓ All {args.runs} runs completed!")

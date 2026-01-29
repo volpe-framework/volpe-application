@@ -84,7 +84,8 @@ func mcsStreamHandlerThread(
 				log.Info().Caller().Msgf("workerID %s received metrics", workerID)
 				metricChan <- result.GetMetrics()
 			} else if result.GetPopulation() != nil {
-				log.Info().Caller().Msgf("workerID %s received population", workerID)
+				pop := result.GetPopulation()
+				log.Info().Msgf("Received population of size %d for %s from %s", len(pop.GetMembers()), pop.GetProblemID(), workerID)
 				popChan <- result.GetPopulation()
 			} else if result.GetHello() != nil {
 				log.Warn().Caller().Msg("got unexpected HelloMsg from stream for " + workerID)

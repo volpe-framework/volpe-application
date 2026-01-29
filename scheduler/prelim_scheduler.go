@@ -124,8 +124,8 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 			log.Info().Msgf("Removing problem %s on scheduler for worker %s", p, w.WorkerID)
 		}
 	}
-	ss.removeList = make([]string, 0)
-	// ss.removeList = slices.Delete(ss.removeList, 0, len(ss.removeList))
+	// ss.removeList = make([]string, 0)
+	ss.removeList = slices.Delete(ss.removeList, 0, len(ss.removeList))
 
 	return nil
 }

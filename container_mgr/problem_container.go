@@ -160,7 +160,6 @@ func (pc *ProblemContainer) runGenerations(ctx context.Context) {
 	for {
 		// TODO: configure generation run count
 		_, err := pc.commsClient.RunForGenerations(ctx, &ccomms.PopulationSize{Size: 3})
-		log.Debug().Msgf("Ran 3 generations for container %s", pc.containerName)
 		if err != nil {
 			if ctx.Err() != nil {
 				break

@@ -11,6 +11,8 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/mackerelio/go-osstat/memory"
 )
 
 
@@ -46,13 +48,25 @@ func NewWorkerComms(endpoint string, workerID string) (*WorkerComms, error) {
 		return nil, err
 	}
 
+	memGB := float32(0)
+
+	memStats, err := memory.Get()
+	if err != nil {
+		log.Err(err).Msgf("Failed to fetch memory capacity")
+		memGB = 4
+	}
+
+	memGB = float32(memStats.Total)/float32(1024*1024*1024)
+
+	log.Debug().Msgf("Memory limit: %f GB", memGB)
+
 	err = wc.stream.Send(&WorkerMessage{
 		Message: &WorkerMessage_Hello{
 			Hello: &WorkerHello{
 				WorkerID: &WorkerID{Id: workerID},
+				// TODO: use system config 
 				CpuCount: int32(runtime.NumCPU()),
-				// TODO: use system config
-				MemoryGB: 4,
+				MemoryGB: float32(memGB),
 			},
 		},
 	})

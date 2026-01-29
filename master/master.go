@@ -85,8 +85,8 @@ func recvPopulation(cman *cm.ContainerManager, popChan chan *ccomms.Population) 
 			log.Error().Caller().Msg("popChan closed")
 			break
 		}
+		log.Info().Msgf("received population for problem %s", m.GetProblemID())
 		cman.IncorporatePopulation(m)
-		log.Info().Caller().Msgf("received population for problem %s", m.GetProblemID())
 		fmt.Println(m.GetProblemID() + " ", m.Members[0].Fitness)
 	}
 }

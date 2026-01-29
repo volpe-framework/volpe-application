@@ -2,7 +2,10 @@ package container_mgr
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
+	"os"
 	"slices"
 	"sync"
 	"volpe-framework/comms/common"
@@ -24,6 +27,7 @@ type ContainerManager struct {
 	images 				map[string]string
 	pcMut             	sync.Mutex
 	containers        	map[string]string
+	problemStarts		map[string]float64
 	meter             	otelmetric.Meter
 	worker 				bool
 }
@@ -32,6 +36,7 @@ func NewContainerManager(worker bool) *ContainerManager {
 	cm := new(ContainerManager)
 	cm.meter = otel.Meter("volpe-framework")
 	cm.problemContainers = make(map[string][]*ProblemContainer)
+	cm.problemStarts = make(map[string]float64)
 	cm.containers = make(map[string]string)
 	cm.images = make(map[string]string)
 	cm.worker = worker
@@ -107,8 +112,37 @@ func (cm *ContainerManager) GetSubpopulations(perContainer int) ([]*common.Popul
 				log.Error().Caller().Msgf("error fetching subpop on %s: %s", pid, err.Error())
 				return nil, err
 			}
-			population.Members = slices.Grow(population.Members, len(tmp.GetMembers()))
-			for _, memb := range(tmp.GetMembers()) {
+
+			members := tmp.GetMembers()
+
+			// TODO: ditch this additional logging
+			if cm.worker {
+				bestFitness := members[0].GetFitness()
+				bestIndex := 0
+				for i, memb := range members[1:] {
+					fit := memb.GetFitness()
+					if fit < bestFitness {
+						bestFitness = fit
+						bestIndex = i
+					}
+				}
+				fname := cont.containerName+".csv"
+				f, err := os.OpenFile(fname, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0644)
+				if err != nil {
+					log.Err(err).Msgf("failed while creating/opening file %s to log best", fname)
+				} else {
+					dataString := fmt.Sprintf("%f,%s\n", bestFitness, base64.RawStdEncoding.EncodeToString(members[bestIndex].GetGenotype()))
+					log.Debug().Msgf("Container subpop: %s", dataString)
+					_, err := f.WriteString(dataString)
+					if err != nil {
+						log.Err(err).Msgf("failed to write container pop log")
+					}
+					f.Close()
+				}
+			}
+
+			population.Members = slices.Grow(population.Members, len(members))
+			for _, memb := range(members) {
 				population.Members = append(population.Members, memb)
 			}
 		}
