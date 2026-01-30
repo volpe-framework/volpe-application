@@ -26,7 +26,7 @@ export CONTAINER_HOST=unix:///run/user/1000/podman/podman.sock
 3. Download this repository
 4. Export the environment variable `CONTAINER_HOST`. Value can be determined by running `podman info -f json | jq .host.remoteSocket.path`. The output from the command must be modified as follows.If the output is `"/run/user/1000/podman/podman.sock"`, the following command must be used to export the env. var.
 ```
-export CONTAINER_HOST=/run/user/1000/podman/podman.sock
+export CONTAINER_HOST=unix:///run/user/1000/podman/podman.sock
 ```
 5. Set the `VOLPE_MASTER` environment variable to the IP address where the master is accessible, with port 8000 by default. For example, if the master is accessible at IP address 192.168.0.2:
 ```
