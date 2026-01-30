@@ -12,7 +12,7 @@ The following are instructions to get the master application up and running:
 3. Download this repository
 4. Export the environment variable `CONTAINER_HOST`. Value can be determined by running `podman info -f json | jq .host.remoteSocket.path`. The output from the command must be modified as follows.If the output is `"/run/user/1000/podman/podman.sock"`, the following command must be used to export the env. var.
 ```
-export CONTAINER_HOST=/run/user/1000/podman/podman.sock
+export CONTAINER_HOST=unix:///run/user/1000/podman/podman.sock
 ```
 5. `cd` into the `master/` folder and run `go run .`
 6. Install any missing dependencies and repeat 4, till the application is running
