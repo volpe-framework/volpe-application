@@ -17,7 +17,12 @@ import (
 
 func NewPodmanConnection() (context.Context, error) {
 	uid := os.Getuid()
-	conn, err := bindings.NewConnection(context.Background(), fmt.Sprintf("unix:///run/user/%d/podman/podman.sock", uid))
+	containerHost, ok := os.LookupEnv("CONTAINER_HOST")
+	if !ok {
+		containerHost = fmt.Sprintf("unix:///run/user/%d/podman/podman.sock", uid)
+		log.Warn().Msgf("Using default Podman socket expected at %s. Please set the CONTAINER_HOST env var.", containerHost)
+	}
+	conn, err := bindings.NewConnection(context.Background(), containerHost)
 	return conn, err
 }
 
