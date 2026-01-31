@@ -286,3 +286,6 @@ func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan 
 	close(channel)
 	return nil
 }
+
+func (cm *ContainerManager) AddProblemListener(channel chan string) {
+}

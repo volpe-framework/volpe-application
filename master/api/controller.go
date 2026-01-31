@@ -23,14 +23,19 @@ type VolpeAPI struct {
 	probstore *model.ProblemStore
 	sched scheduler.Scheduler
 	contman *contman.ContainerManager
+	eventStream chan string
+	eventOutChannels map[chan string]bool
 }
 
-func NewVolpeAPI(ps *model.ProblemStore, sched scheduler.Scheduler, contman *contman.ContainerManager) (*VolpeAPI, error) {
+func NewVolpeAPI(ps *model.ProblemStore, sched scheduler.Scheduler, contman *contman.ContainerManager, eventStream chan string) (*VolpeAPI, error) {
 	api := &VolpeAPI{
 		probstore: ps,
 		sched: sched,
 		contman: contman,
+		eventStream: eventStream,
+		eventOutChannels: make(map[chan string]bool),
 	}
+	go api.distributeResults()
 	return api, nil
 }
 
@@ -134,9 +139,30 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 		return
 	}
 
+	jsonMsg, _ := json.Marshal(map[string]any{
+		"type": "ProblemStarted",
+		"problemID": problemID,
+		"islands": problem.IslandCount,
+		"mem": problem.MemoryUsage,
+	})
+	va.eventStream <- string(jsonMsg)
+
 	va.sched.AddProblem(problem)
 	va.contman.AddProblem(problemID, fname, 1)
 	c.Status(200)
+}
+
+func (va *VolpeAPI) distributeResults() {
+	for {
+		event, ok := <- va.eventStream
+		if !ok {
+			log.Error().Msgf("eventStream channel was closed while reading")
+			return
+		}
+		for channel, _ := range(va.eventOutChannels) {
+			channel <- event
+		}
+	}
 }
 
 func (va *VolpeAPI) StreamResults (c *gin.Context) {
@@ -191,7 +217,44 @@ func (va *VolpeAPI) StreamResults (c *gin.Context) {
 
 func (va *VolpeAPI) AbortProblem(c *gin.Context) {
 	problemID := c.Param("id")
+
+	jsonMsg, _ := json.Marshal(map[string]any{
+		"type": "ProblemStopped",
+		"problemID": problemID,
+	})
+	va.eventStream <- string(jsonMsg)
+
 	va.sched.RemoveProblem(problemID)
 	va.contman.RemoveProblem(problemID)
 	c.Status(200)
+}
+
+func (va *VolpeAPI) EventStream(c *gin.Context) {
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Writer.Flush()
+
+	channel := make(chan string, 5)
+	va.eventOutChannels[channel] = true
+
+	// TODO: Race condition here?
+	defer func() {
+		delete(va.eventOutChannels, channel)
+		close(channel)
+	}()
+
+	for {
+		event, ok := <- channel
+		if !ok {
+			log.Info().Msgf("EventStream channel closed, ending request")
+			return
+		}
+		_, err := c.Writer.WriteString("data: " + event + "\n\n")
+		if err != nil {
+			log.Err(err).Msgf("EventStream write failed")
+			return
+		}
+		c.Writer.Flush()
+	}
 }

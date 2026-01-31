@@ -2,6 +2,7 @@ package volpe
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -35,6 +36,7 @@ type masterCommsServer struct {
 	popChan    chan *common.Population
 	sched SchedulerComms
 	probStore  ProblemStore
+	eventStream chan string
 }
 
 type SchedulerComms interface {
@@ -48,6 +50,7 @@ func mcsStreamHandlerThread(
 	masterSendChan chan *MasterMessage,
 	metricChan chan *MetricsMessage,
 	popChan chan *common.Population,
+	eventStream chan string,
 ) {
 
 	log.Info().Caller().Msgf("workerID %s connected", workerID)
@@ -82,10 +85,35 @@ func mcsStreamHandlerThread(
 			}
 			if result.GetMetrics() != nil {
 				log.Info().Caller().Msgf("workerID %s received metrics", workerID)
+				jsonMsg, _ := json.Marshal(map[string]any{
+					"type": "WorkerMetrics",
+					"workerID": workerID,
+					"cpu": result.GetMetrics().GetCpuUtil(),
+					"mem": result.GetMetrics().GetMemUsage()/result.GetMetrics().GetMemTotal(),
+				})
+				eventStream <- string(jsonMsg)
+
 				metricChan <- result.GetMetrics()
 			} else if result.GetPopulation() != nil {
 				pop := result.GetPopulation()
 				log.Info().Msgf("Received population of size %d for %s from %s", len(pop.GetMembers()), pop.GetProblemID(), workerID)
+
+				sumFitness := 0.0
+				popSize := 0
+				for _, ind := range(pop.GetMembers()) {
+					sumFitness += float64(ind.GetFitness())
+					popSize += 1
+				}
+
+				jsonMsg, _ := json.Marshal(map[string]any{
+					"type": "ReceivedWorkerPopulation",
+					"workerID": workerID,
+					"problemID": pop.GetProblemID(),
+					"avgFitness": sumFitness/float64(popSize),
+					"popSize": popSize,
+				})
+				eventStream <- string(jsonMsg)
+
 				popChan <- result.GetPopulation()
 			} else if result.GetHello() != nil {
 				log.Warn().Caller().Msg("got unexpected HelloMsg from stream for " + workerID)
@@ -95,6 +123,32 @@ func mcsStreamHandlerThread(
 				log.Info().Caller().Msgf("send chan to workerID %s closed, exiting", workerID)
 				return
 			}
+
+			adjInst :=  result.GetAdjInst()
+			jsonMsg, _ := json.Marshal(map[string]any{
+				"type": "SetWorkerInstances",
+				"problemID": adjInst.GetProblemID(),
+				"workerID": workerID,
+				"instances": adjInst.GetInstances(),
+			})
+			eventStream <- string(jsonMsg)
+
+			fitnessSum := 0.0
+			indCount := 0
+			for _, ind := range(adjInst.GetSeed().GetMembers()) {
+				fitnessSum += float64(ind.GetFitness())
+				indCount += 1
+			}
+			jsonMsg, _ = json.Marshal(map[string]any{
+				"type": "SentMasterPopulation",
+				"workerID": workerID,
+				"problemID": adjInst.GetProblemID(),
+				"avgFitness": fitnessSum/float64(indCount),
+				"popSize": indCount,
+			})
+			eventStream <- string(jsonMsg)
+		
+
 			err := stream.Send(result)
 			if err != nil {
 				log.Error().Caller().Msg(err.Error())
@@ -105,9 +159,10 @@ func mcsStreamHandlerThread(
 	}
 }
 
-func initMasterCommsServer(mcs *masterCommsServer, metricChan chan *MetricsMessage) (err error) {
+func initMasterCommsServer(mcs *masterCommsServer, metricChan chan *MetricsMessage, eventStream chan string) (err error) {
 	mcs.channs = make(map[string]chan *MasterMessage)
 	mcs.metricChan = metricChan
+	mcs.eventStream = eventStream
 	return nil
 }
 
@@ -126,6 +181,7 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 	log.Info().Caller().Msgf("workerID %s connected to master", workerID)
 	fmt.Println(workerID)
 
+
 	masterSendChan := make(chan *MasterMessage)
 
 	mcs.chans_mut.Lock()
@@ -138,7 +194,21 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 		MemoryGB: workerHelloMsg.GetMemoryGB(),
 	})
 
-	mcsStreamHandlerThread(workerID, stream, masterSendChan, mcs.metricChan, mcs.popChan)
+	jsonMsg, _ := json.Marshal(map[string]any{
+		"type": "WorkerJoined",
+		"workerID": workerID,
+		"cpuCount": workerHelloMsg.GetCpuCount(),
+		"mem": workerHelloMsg.GetMemoryGB(),
+	})
+	mcs.eventStream <- string(jsonMsg)
+
+	mcsStreamHandlerThread(workerID, stream, masterSendChan, mcs.metricChan, mcs.popChan, mcs.eventStream)
+
+	jsonMsg, _ = json.Marshal(map[string]string{
+		"type": "WorkerLeft",
+		"workerID": workerID,
+	})
+	mcs.eventStream <- string(jsonMsg)
 
 	mcs.sched.RemoveWorker(workerID)
 	return nil
@@ -191,9 +261,9 @@ func (mcs *masterCommsServer) GetImage(req *ImageRequest, stream grpc.ServerStre
 
 func (mcs *masterCommsServer) mustEmbedUnimplementedVolpeMasterServer() {}
 
-func NewMasterComms(port uint16, metricChan chan *MetricsMessage, popChan chan *common.Population, sched SchedulerComms, probStore ProblemStore) (*MasterComms, error) {
+func NewMasterComms(port uint16, metricChan chan *MetricsMessage, popChan chan *common.Population, sched SchedulerComms, probStore ProblemStore, eventStream chan string) (*MasterComms, error) {
 	mc := new(MasterComms)
-	err := initMasterCommsServer(&mc.mcs, metricChan)
+	err := initMasterCommsServer(&mc.mcs, metricChan, eventStream)
 	if err != nil {
 		log.Error().Caller().Msg(err.Error())
 		return nil, err
