@@ -55,7 +55,7 @@ wsl -d <distro-name>    # Reboot
 
 ## Building and Deploying a Problem
 1. Clone repo `https://github.com/aadit-n3rdy/volpe-py.git`
-2. cd into `volke-py/`
+2. cd into `volpe-py/`
 3. Run ``bash build-image.sh``
 4. Ensure `.tar` file present
 
