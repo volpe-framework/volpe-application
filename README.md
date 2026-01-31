@@ -29,12 +29,6 @@ export VOLPE_MASTER=192.168.0.2:8080
 ```
 2. `cd` into the `worker/` folder and run `go run .`
 
-## Volpe-py .tar Build
-1. Clone repo `https://github.com/aadit-n3rdy/volpe-py.git`
-2. cd into `volke-py/`
-3. Run ```bash build-image.sh```
-4. Ensure .tar file present
-
 ### Steps to Fix (WSL)
 
 To change the firewall configs in WSL do
@@ -58,3 +52,15 @@ Shutdown the WSL. And reboot. Only then the changes reflect
 wsl --shutdown          # Shutdown wsl
 wsl -d <distro-name>    # Reboot
 `
+
+## Building and Deploying a Problem
+1. Clone repo `https://github.com/aadit-n3rdy/volpe-py.git`
+2. cd into `volke-py/`
+3. Run ``bash build-image.sh``
+4. Ensure `.tar` file present
+
+## Running in the Website
+1. Open browser and go to `localhost:8000/static`
+2. Give the problem a name and choose .tar file built from `volke-py/` and enter the memory count and number of target instances
+3. Enter the problem name and click `START PROBLEM`
+4. Enter the problem name and and click `CONNECT STREAM`
