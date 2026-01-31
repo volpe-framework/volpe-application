@@ -16,8 +16,8 @@ import (
 
 	model "volpe-framework/master/model"
 
-	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -31,6 +31,8 @@ func main() {
 		log.Error().Caller().Msgf("err with sched: %s", err.Error())
 		panic(err)
 	}
+
+	eventChannel := make(chan string, 5)
 
 	sched.Init()
 
@@ -49,14 +51,14 @@ func main() {
 
 	problemStore, _ := model.NewProblemStore()
 
-	mc, err := vcomms.NewMasterComms(portD, metricChan, popChan, sched, problemStore)
+	mc, err := vcomms.NewMasterComms(portD, metricChan, popChan, sched, problemStore, eventChannel)
 	if err != nil {
 		log.Fatal().Caller().Msgf("error initializing master comms: %s", err.Error())
 		panic(err)
 	}
 
 
-	api, err := apilib.NewVolpeAPI(problemStore, sched, cman)
+	api, err := apilib.NewVolpeAPI(problemStore, sched, cman, eventChannel)
 	if err != nil {
 		panic(err)
 	}
