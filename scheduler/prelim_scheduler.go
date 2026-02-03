@@ -40,7 +40,7 @@ func (ss *PrelimScheduler) AddWorker(worker types.Worker) {
 	ss.workers = append(ss.workers, worker)
 }
 
-func (ss *PrelimScheduler) UpdateMetrics(metrics *vcomms.MetricsMessage) {
+func (ss *PrelimScheduler) UpdateMetrics(metrics *vcomms.DeviceMetricsMessage) {
 	// TODO: apply metrics update
 	//log.Warn().Caller().Msgf("skipping metrics update for static scheduler")
 }

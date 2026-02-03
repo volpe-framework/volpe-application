@@ -23,11 +23,10 @@ import (
 // TODO: testing for this module
 
 type ContainerManager struct {
-	problemContainers 	map[string][]*ProblemContainer
-	images 				map[string]string
+	problemContainers 	map[string][]*ProblemContainer // map from problemID to list of containers
+	images 				map[string]string				// map from problemID to image path
 	pcMut             	sync.Mutex
-	containers        	map[string]string
-	problemStarts		map[string]float64
+	containers        	map[string]string				// map from containerID to problemID
 	meter             	otelmetric.Meter
 	worker 				bool
 }
@@ -36,7 +35,6 @@ func NewContainerManager(worker bool) *ContainerManager {
 	cm := new(ContainerManager)
 	cm.meter = otel.Meter("volpe-framework")
 	cm.problemContainers = make(map[string][]*ProblemContainer)
-	cm.problemStarts = make(map[string]float64)
 	cm.containers = make(map[string]string)
 	cm.images = make(map[string]string)
 	cm.worker = worker
@@ -58,7 +56,7 @@ func (cm *ContainerManager) AddProblem(problemID string, imagePath string, insta
 	cm.images[problemID] = imagePath
 	if ok {
 		log.Warn().Caller().Msgf("Retried creating PC for pID %s, ignoring", problemID)
-		// WARN: if supporting updating container, must change cm.containers here
+		// TODO: if supporting updating container, must change cm.containers here
 		return errors.New("problemID already has container")
 	}
 
@@ -285,7 +283,4 @@ func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan 
 	pc[0].DeRegisterResultChannel(channel)
 	close(channel)
 	return nil
-}
-
-func (cm *ContainerManager) AddProblemListener(channel chan string) {
 }

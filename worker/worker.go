@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand/v2"
 	"os"
@@ -9,6 +10,9 @@ import (
 	vcomms "volpe-framework/comms/volpe"
 	contman "volpe-framework/container_mgr"
 
+	memorystat "github.com/mackerelio/go-osstat/memory"
+	loadstat "github.com/mackerelio/go-osstat/loadavg"
+	networkstat "github.com/mackerelio/go-osstat/network"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -18,6 +22,9 @@ func main() {
 	// metrics.InitOTelSDK()
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+
+	workerContext, cancelFunc := context.WithCancel(context.TODO())
+	defer cancelFunc()
 
 	endpoint, ok := os.LookupEnv("VOLPE_MASTER")
 	if !ok {
@@ -37,7 +44,13 @@ func main() {
 	}
 	cm := contman.NewContainerManager(true)
 
-	go cm.RunMetricsExport(wc, workerID)
+	go deviceMetricsExporter(workerContext, wc)
+
+	// go cm.RunMetricsExport(wc, workerID)
+
+	// TODO: reevaluate if worker container metrics are needed
+	// metricsChan := make(chan *contman.ContainerMetrics, 5)
+	// go cm.StreamContainerMetrics(metricsChan, workerContext)
 
 	go populationExtractor(cm, wc)
 
@@ -46,6 +59,58 @@ func main() {
 	go adjInstHandler(wc, adjInstChan, cm)
 	
 	wc.HandleStreams(adjInstChan)
+}
+
+// TODO: rewrite handler based on any aggregation of metrics needed
+// func workerMetricsHandler(metricChan chan *contman.ContainerMetrics, wc *volpe.WorkerComms) {
+// 	for {
+// 		metrics, ok := <- metricChan 
+// 		if !ok {
+// 			log.Info().Msgf("Metrics channel closed, exiting metrics handler")
+// 			return
+// 		}
+// 	}
+// }
+
+func deviceMetricsExporter(ctx context.Context, wc *vcomms.WorkerComms) {
+	memStats, err := memorystat.Get()
+	memGB := float32(0)
+	if err != nil {
+		log.Err(err).Msgf("Failed fetching memory stats")
+	} else {
+		memGB = float32(memStats.Used)/(1024*1024*1024)
+	}
+
+	loadStats, err := loadstat.Get()
+	cpuPerc := float32(0)
+	if err != nil {
+		log.Err(err).Msgf("Failed to fetch CPU stats")
+	} else {
+		cpuPerc = float32(loadStats.Loadavg5)
+	}
+
+	netTxBytes := uint32(0)
+	netRxBytes := uint32(0)
+	netStats, err := networkstat.Get()
+	if err != nil {
+		log.Err(err).Msgf("Failed to fetch network stats")
+	} else {
+		for _, netStat := range(netStats) {
+			netRxBytes += uint32(netStat.RxBytes)
+			netTxBytes += uint32(netStat.TxBytes)
+		}
+	}
+
+	for ctx.Err() == nil {
+		wc.SendDeviceMetrics(&vcomms.DeviceMetricsMessage{
+			CpuUtilPerc: cpuPerc,
+			MemUsageGB: memGB,
+			NetTxBytes: netTxBytes,
+			NetRxBytes: netRxBytes,
+		})
+		time.Sleep(5*time.Second)
+	}
+	log.Info().Msgf("Stopping device metrics export")
 }
 
 func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {

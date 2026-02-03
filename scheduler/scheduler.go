@@ -10,7 +10,7 @@ type Scheduler interface {
 	FillSchedule(sched Schedule) error            // get a mapping from <worker, problem> to target popln
 	AddWorker(worker types.Worker)                        // add a new worker, update population
 	RemoveWorker(name string)                     // remove an existing worker, update population
-	UpdateMetrics(metrics *vcomms.MetricsMessage) // update the metrics and objective function
+	UpdateMetrics(metrics *vcomms.DeviceMetricsMessage) // update the metrics and objective function
 	AddProblem(problem types.Problem)
 	RemoveProblem(name string)
 }

@@ -46,7 +46,7 @@ func main() {
 
 	cman := cm.NewContainerManager(false)
 
-	metricChan := make(chan *vcomms.MetricsMessage, 10)
+	metricChan := make(chan *vcomms.DeviceMetricsMessage, 10)
 	popChan := make(chan *ccomms.Population, 10)
 
 	problemStore, _ := model.NewProblemStore()
@@ -93,7 +93,7 @@ func recvPopulation(cman *cm.ContainerManager, popChan chan *ccomms.Population) 
 	}
 }
 
-func sendMetric(metricChan chan *vcomms.MetricsMessage, sched scheduler.Scheduler) {
+func sendMetric(metricChan chan *vcomms.DeviceMetricsMessage, sched scheduler.Scheduler) {
 	for {
 		m, ok := <-metricChan
 		if !ok {

@@ -261,7 +261,7 @@ func (mcs *masterCommsServer) GetImage(req *ImageRequest, stream grpc.ServerStre
 
 func (mcs *masterCommsServer) mustEmbedUnimplementedVolpeMasterServer() {}
 
-func NewMasterComms(port uint16, metricChan chan *MetricsMessage, popChan chan *common.Population, sched SchedulerComms, probStore ProblemStore, eventStream chan string) (*MasterComms, error) {
+func NewMasterComms(port uint16, metricChan chan *DeviceMetricsMessage, popChan chan *common.Population, sched SchedulerComms, probStore ProblemStore, eventStream chan string) (*MasterComms, error) {
 	mc := new(MasterComms)
 	err := initMasterCommsServer(&mc.mcs, metricChan, eventStream)
 	if err != nil {

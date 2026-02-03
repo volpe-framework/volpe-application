@@ -105,7 +105,7 @@ func (wc *WorkerComms) HandleStreams(adjInstChannel chan *AdjustInstancesMessage
 	}
 }
 
-func (wc *WorkerComms) SendMetrics(metrics *MetricsMessage) error {
+func (wc *WorkerComms) SendDeviceMetrics(metrics *DeviceMetricsMessage) error {
 	metrics.WorkerID = wc.workerID
 	workerMsg := WorkerMessage{Message: &WorkerMessage_Metrics{metrics}}
 	err := wc.stream.Send(&workerMsg)
