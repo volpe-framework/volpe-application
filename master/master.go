@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
@@ -109,7 +110,7 @@ func recvPopulation(cman *cm.ContainerManager, popChan chan *ccomms.Population) 
 	}
 }
 
-func sendMetric(metricChan chan *vcomms.DeviceMetricsMessage, sched scheduler.Scheduler) {
+func sendMetric(metricChan chan *vcomms.DeviceMetricsMessage, eventChannel chan string, sched scheduler.Scheduler) {
 	for {
 		m, ok := <-metricChan
 		if !ok {
@@ -117,6 +118,14 @@ func sendMetric(metricChan chan *vcomms.DeviceMetricsMessage, sched scheduler.Sc
 			return
 		}
 		sched.UpdateMetrics(m)
+
+		jsonMsg, _ := json.Marshal(map[string]any{
+			"type": "WorkerMetrics",
+			"workerID": m.GetWorkerID(),
+			"cpuUtilPerc": m.GetCpuUtilPerc(),
+			"memUsageGB": m.GetMemUsageGB(),
+		})
+		eventChannel <- string(jsonMsg)
 	}
 }
 
