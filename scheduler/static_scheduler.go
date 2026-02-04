@@ -43,7 +43,7 @@ func (ss *StaticScheduler) AddWorker(workerID string, cpuCount int32) {
 	ss.workers = append(ss.workers, Worker{workerID, cpuCount})
 }
 
-func (ss *StaticScheduler) UpdateMetrics(metrics *vcomms.MetricsMessage) {
+func (ss *StaticScheduler) UpdateMetrics(metrics *vcomms.DeviceMetricsMessage) {
 	// TODO: apply metrics update
 	//log.Warn().Caller().Msgf("skipping metrics update for static scheduler")
 }

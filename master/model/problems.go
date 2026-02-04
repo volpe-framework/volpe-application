@@ -69,3 +69,15 @@ func (ps *ProblemStore) GetFileName(id string) (string, bool) {
 	}
 	return prob.problemFile, true
 }
+
+func (ps *ProblemStore) UpdateMemory(id string, memGB float32) {
+	ps.mut.Lock()
+	defer ps.mut.Unlock()
+
+	prob, ok := ps.problems[id]
+	if !ok {
+		log.Error().Msgf("tried to update memory for nonexistent problem %s", id)
+		return
+	}
+	prob.metadata.MemoryUsage = memGB
+}

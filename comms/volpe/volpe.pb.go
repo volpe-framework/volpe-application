@@ -381,7 +381,7 @@ func (x *WorkerMessage) GetMessage() isWorkerMessage_Message {
 	return nil
 }
 
-func (x *WorkerMessage) GetMetrics() *MetricsMessage {
+func (x *WorkerMessage) GetMetrics() *DeviceMetricsMessage {
 	if x != nil {
 		if x, ok := x.Message.(*WorkerMessage_Metrics); ok {
 			return x.Metrics
@@ -413,7 +413,7 @@ type isWorkerMessage_Message interface {
 }
 
 type WorkerMessage_Metrics struct {
-	Metrics *MetricsMessage `protobuf:"bytes,1,opt,name=metrics,proto3,oneof"`
+	Metrics *DeviceMetricsMessage `protobuf:"bytes,1,opt,name=metrics,proto3,oneof"`
 }
 
 type WorkerMessage_Population struct {
@@ -430,31 +430,31 @@ func (*WorkerMessage_Population) isWorkerMessage_Message() {}
 
 func (*WorkerMessage_Hello) isWorkerMessage_Message() {}
 
-type MetricsMessage struct {
-	state              protoimpl.MessageState         `protogen:"open.v1"`
-	CpuUtil            float32                        `protobuf:"fixed32,1,opt,name=cpuUtil,proto3" json:"cpuUtil,omitempty"`
-	MemUsage           float32                        `protobuf:"fixed32,2,opt,name=memUsage,proto3" json:"memUsage,omitempty"`
-	MemTotal           float32                        `protobuf:"fixed32,3,opt,name=memTotal,proto3" json:"memTotal,omitempty"`
-	ApplicationMetrics map[string]*ApplicationMetrics `protobuf:"bytes,4,rep,name=applicationMetrics,proto3" json:"applicationMetrics,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	WorkerID           string                         `protobuf:"bytes,5,opt,name=workerID,proto3" json:"workerID,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+type DeviceMetricsMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkerID      string                 `protobuf:"bytes,1,opt,name=workerID,proto3" json:"workerID,omitempty"`
+	CpuUtilPerc   float32                `protobuf:"fixed32,2,opt,name=cpuUtilPerc,proto3" json:"cpuUtilPerc,omitempty"`
+	MemUsageGB    float32                `protobuf:"fixed32,3,opt,name=memUsageGB,proto3" json:"memUsageGB,omitempty"`
+	NetTxBytes    uint32                 `protobuf:"varint,4,opt,name=netTxBytes,proto3" json:"netTxBytes,omitempty"`
+	NetRxBytes    uint32                 `protobuf:"varint,5,opt,name=netRxBytes,proto3" json:"netRxBytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *MetricsMessage) Reset() {
-	*x = MetricsMessage{}
+func (x *DeviceMetricsMessage) Reset() {
+	*x = DeviceMetricsMessage{}
 	mi := &file_volpe_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *MetricsMessage) String() string {
+func (x *DeviceMetricsMessage) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*MetricsMessage) ProtoMessage() {}
+func (*DeviceMetricsMessage) ProtoMessage() {}
 
-func (x *MetricsMessage) ProtoReflect() protoreflect.Message {
+func (x *DeviceMetricsMessage) ProtoReflect() protoreflect.Message {
 	mi := &file_volpe_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -466,44 +466,44 @@ func (x *MetricsMessage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MetricsMessage.ProtoReflect.Descriptor instead.
-func (*MetricsMessage) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeviceMetricsMessage.ProtoReflect.Descriptor instead.
+func (*DeviceMetricsMessage) Descriptor() ([]byte, []int) {
 	return file_volpe_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *MetricsMessage) GetCpuUtil() float32 {
-	if x != nil {
-		return x.CpuUtil
-	}
-	return 0
-}
-
-func (x *MetricsMessage) GetMemUsage() float32 {
-	if x != nil {
-		return x.MemUsage
-	}
-	return 0
-}
-
-func (x *MetricsMessage) GetMemTotal() float32 {
-	if x != nil {
-		return x.MemTotal
-	}
-	return 0
-}
-
-func (x *MetricsMessage) GetApplicationMetrics() map[string]*ApplicationMetrics {
-	if x != nil {
-		return x.ApplicationMetrics
-	}
-	return nil
-}
-
-func (x *MetricsMessage) GetWorkerID() string {
+func (x *DeviceMetricsMessage) GetWorkerID() string {
 	if x != nil {
 		return x.WorkerID
 	}
 	return ""
+}
+
+func (x *DeviceMetricsMessage) GetCpuUtilPerc() float32 {
+	if x != nil {
+		return x.CpuUtilPerc
+	}
+	return 0
+}
+
+func (x *DeviceMetricsMessage) GetMemUsageGB() float32 {
+	if x != nil {
+		return x.MemUsageGB
+	}
+	return 0
+}
+
+func (x *DeviceMetricsMessage) GetNetTxBytes() uint32 {
+	if x != nil {
+		return x.NetTxBytes
+	}
+	return 0
+}
+
+func (x *DeviceMetricsMessage) GetNetRxBytes() uint32 {
+	if x != nil {
+		return x.NetRxBytes
+	}
+	return 0
 }
 
 type ApplicationMetrics struct {
@@ -624,23 +624,26 @@ const file_volpe_proto_rawDesc = "" +
 	"\vWorkerHello\x12%\n" +
 	"\bworkerID\x18\x01 \x01(\v2\t.WorkerIDR\bworkerID\x12\x1a\n" +
 	"\bcpuCount\x18\x02 \x01(\x05R\bcpuCount\x12\x1a\n" +
-	"\bmemoryGB\x18\x03 \x01(\x02R\bmemoryGB\"\x9c\x01\n" +
-	"\rWorkerMessage\x12+\n" +
-	"\ametrics\x18\x01 \x01(\v2\x0f.MetricsMessageH\x00R\ametrics\x12-\n" +
+	"\bmemoryGB\x18\x03 \x01(\x02R\bmemoryGB\"\xa2\x01\n" +
+	"\rWorkerMessage\x121\n" +
+	"\ametrics\x18\x01 \x01(\v2\x15.DeviceMetricsMessageH\x00R\ametrics\x12-\n" +
 	"\n" +
 	"population\x18\x02 \x01(\v2\v.PopulationH\x00R\n" +
 	"population\x12$\n" +
 	"\x05hello\x18\x03 \x01(\v2\f.WorkerHelloH\x00R\x05helloB\t\n" +
-	"\amessage\"\xb3\x02\n" +
-	"\x0eMetricsMessage\x12\x18\n" +
-	"\acpuUtil\x18\x01 \x01(\x02R\acpuUtil\x12\x1a\n" +
-	"\bmemUsage\x18\x02 \x01(\x02R\bmemUsage\x12\x1a\n" +
-	"\bmemTotal\x18\x03 \x01(\x02R\bmemTotal\x12W\n" +
-	"\x12applicationMetrics\x18\x04 \x03(\v2'.MetricsMessage.ApplicationMetricsEntryR\x12applicationMetrics\x12\x1a\n" +
-	"\bworkerID\x18\x05 \x01(\tR\bworkerID\x1aZ\n" +
-	"\x17ApplicationMetricsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12)\n" +
-	"\x05value\x18\x02 \x01(\v2\x13.ApplicationMetricsR\x05value:\x028\x01\"J\n" +
+	"\amessage\"\xb4\x01\n" +
+	"\x14DeviceMetricsMessage\x12\x1a\n" +
+	"\bworkerID\x18\x01 \x01(\tR\bworkerID\x12 \n" +
+	"\vcpuUtilPerc\x18\x02 \x01(\x02R\vcpuUtilPerc\x12\x1e\n" +
+	"\n" +
+	"memUsageGB\x18\x03 \x01(\x02R\n" +
+	"memUsageGB\x12\x1e\n" +
+	"\n" +
+	"netTxBytes\x18\x04 \x01(\rR\n" +
+	"netTxBytes\x12\x1e\n" +
+	"\n" +
+	"netRxBytes\x18\x05 \x01(\rR\n" +
+	"netRxBytes\"J\n" +
 	"\x12ApplicationMetrics\x12\x18\n" +
 	"\acpuUtil\x18\x01 \x01(\x02R\acpuUtil\x12\x1a\n" +
 	"\bmemUsage\x18\x02 \x01(\x02R\bmemUsage\",\n" +
@@ -662,7 +665,7 @@ func file_volpe_proto_rawDescGZIP() []byte {
 	return file_volpe_proto_rawDescData
 }
 
-var file_volpe_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_volpe_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_volpe_proto_goTypes = []any{
 	(*WorkerID)(nil),                 // 0: WorkerID
 	(*MasterMessage)(nil),            // 1: MasterMessage
@@ -670,33 +673,30 @@ var file_volpe_proto_goTypes = []any{
 	(*AdjustPopulationMessage)(nil),  // 3: AdjustPopulationMessage
 	(*WorkerHello)(nil),              // 4: WorkerHello
 	(*WorkerMessage)(nil),            // 5: WorkerMessage
-	(*MetricsMessage)(nil),           // 6: MetricsMessage
+	(*DeviceMetricsMessage)(nil),     // 6: DeviceMetricsMessage
 	(*ApplicationMetrics)(nil),       // 7: ApplicationMetrics
 	(*ImageRequest)(nil),             // 8: ImageRequest
-	nil,                              // 9: MetricsMessage.ApplicationMetricsEntry
-	(*common.Population)(nil),        // 10: Population
-	(*common.ImageStreamObject)(nil), // 11: ImageStreamObject
+	(*common.Population)(nil),        // 9: Population
+	(*common.ImageStreamObject)(nil), // 10: ImageStreamObject
 }
 var file_volpe_proto_depIdxs = []int32{
 	3,  // 0: MasterMessage.adjPop:type_name -> AdjustPopulationMessage
 	2,  // 1: MasterMessage.adjInst:type_name -> AdjustInstancesMessage
-	10, // 2: AdjustInstancesMessage.seed:type_name -> Population
-	10, // 3: AdjustPopulationMessage.seed:type_name -> Population
+	9,  // 2: AdjustInstancesMessage.seed:type_name -> Population
+	9,  // 3: AdjustPopulationMessage.seed:type_name -> Population
 	0,  // 4: WorkerHello.workerID:type_name -> WorkerID
-	6,  // 5: WorkerMessage.metrics:type_name -> MetricsMessage
-	10, // 6: WorkerMessage.population:type_name -> Population
+	6,  // 5: WorkerMessage.metrics:type_name -> DeviceMetricsMessage
+	9,  // 6: WorkerMessage.population:type_name -> Population
 	4,  // 7: WorkerMessage.hello:type_name -> WorkerHello
-	9,  // 8: MetricsMessage.applicationMetrics:type_name -> MetricsMessage.ApplicationMetricsEntry
-	7,  // 9: MetricsMessage.ApplicationMetricsEntry.value:type_name -> ApplicationMetrics
-	5,  // 10: VolpeMaster.StartStreams:input_type -> WorkerMessage
-	8,  // 11: VolpeMaster.GetImage:input_type -> ImageRequest
-	1,  // 12: VolpeMaster.StartStreams:output_type -> MasterMessage
-	11, // 13: VolpeMaster.GetImage:output_type -> ImageStreamObject
-	12, // [12:14] is the sub-list for method output_type
-	10, // [10:12] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	5,  // 8: VolpeMaster.StartStreams:input_type -> WorkerMessage
+	8,  // 9: VolpeMaster.GetImage:input_type -> ImageRequest
+	1,  // 10: VolpeMaster.StartStreams:output_type -> MasterMessage
+	10, // 11: VolpeMaster.GetImage:output_type -> ImageStreamObject
+	10, // [10:12] is the sub-list for method output_type
+	8,  // [8:10] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_volpe_proto_init() }
@@ -719,7 +719,7 @@ func file_volpe_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_volpe_proto_rawDesc), len(file_volpe_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

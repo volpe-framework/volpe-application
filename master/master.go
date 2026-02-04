@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
@@ -26,6 +28,9 @@ func main() {
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 
+	masterContext, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+
 	sched, err := scheduler.NewPrelimScheduler()
 	if err != nil {
 		log.Error().Caller().Msgf("err with sched: %s", err.Error())
@@ -46,7 +51,7 @@ func main() {
 
 	cman := cm.NewContainerManager(false)
 
-	metricChan := make(chan *vcomms.MetricsMessage, 10)
+	metricChan := make(chan *vcomms.DeviceMetricsMessage, 10)
 	popChan := make(chan *ccomms.Population, 10)
 
 	problemStore, _ := model.NewProblemStore()
@@ -71,6 +76,8 @@ func main() {
 
 	go sendMetric(metricChan, sched)
 
+	go processContainerMetrics(cman, problemStore, masterContext)
+
 	go recvPopulation(cman, popChan)
 
 	go applySchedule(sched, schedule, &schedMutex)
@@ -78,6 +85,16 @@ func main() {
 	go sendPopulation(mc, cman, schedule, &schedMutex)
 
 	mc.Serve()
+}
+
+func processContainerMetrics(contman *cm.ContainerManager, problemStore *model.ProblemStore, masterContext context.Context) {
+	 metricChan := make(chan *cm.ContainerMetrics, 5)
+	contman.StreamContainerMetrics(metricChan, masterContext)
+	for {
+		metric := <- metricChan
+		log.Info().Msgf("Container for %s using %f GB memory", metric.ProblemID, metric.MemUsageGB)
+		// problemStore.UpdateMemory(problemID, metric.MemUsageGB)
+	}
 }
 
 func recvPopulation(cman *cm.ContainerManager, popChan chan *ccomms.Population) {
@@ -93,7 +110,7 @@ func recvPopulation(cman *cm.ContainerManager, popChan chan *ccomms.Population) 
 	}
 }
 
-func sendMetric(metricChan chan *vcomms.MetricsMessage, sched scheduler.Scheduler) {
+func sendMetric(metricChan chan *vcomms.DeviceMetricsMessage, eventChannel chan string, sched scheduler.Scheduler) {
 	for {
 		m, ok := <-metricChan
 		if !ok {
@@ -101,6 +118,14 @@ func sendMetric(metricChan chan *vcomms.MetricsMessage, sched scheduler.Schedule
 			return
 		}
 		sched.UpdateMetrics(m)
+
+		jsonMsg, _ := json.Marshal(map[string]any{
+			"type": "WorkerMetrics",
+			"workerID": m.GetWorkerID(),
+			"cpuUtilPerc": m.GetCpuUtilPerc(),
+			"memUsageGB": m.GetMemUsageGB(),
+		})
+		eventChannel <- string(jsonMsg)
 	}
 }
 
