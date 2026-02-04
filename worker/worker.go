@@ -62,15 +62,16 @@ func main() {
 }
 
 // TODO: rewrite handler based on any aggregation of metrics needed
-// func workerMetricsHandler(metricChan chan *contman.ContainerMetrics, wc *volpe.WorkerComms) {
-// 	for {
-// 		metrics, ok := <- metricChan 
-// 		if !ok {
-// 			log.Info().Msgf("Metrics channel closed, exiting metrics handler")
-// 			return
-// 		}
-// 	}
-// }
+func workerMetricsHandler(metricChan chan *contman.ContainerMetrics, wc *vcomms.WorkerComms) {
+	for {
+		metrics, ok := <- metricChan 
+		if !ok {
+			log.Info().Msgf("Metrics channel closed, exiting metrics handler")
+			return
+		}
+		log.Debug().Msgf("Container %s using %f GB memory", metrics.ContainerName, metrics.MemUsageGB)
+	}
+}
 
 func deviceMetricsExporter(ctx context.Context, wc *vcomms.WorkerComms) {
 	memStats, err := memorystat.Get()

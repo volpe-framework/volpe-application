@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -25,6 +26,9 @@ func main() {
 	// metrics.InitOTelSDK()
 
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+
+	masterContext, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
 
 	sched, err := scheduler.NewPrelimScheduler()
 	if err != nil {
@@ -71,6 +75,8 @@ func main() {
 
 	go sendMetric(metricChan, sched)
 
+	go processContainerMetrics(cman, problemStore, masterContext)
+
 	go recvPopulation(cman, popChan)
 
 	go applySchedule(sched, schedule, &schedMutex)
@@ -78,6 +84,16 @@ func main() {
 	go sendPopulation(mc, cman, schedule, &schedMutex)
 
 	mc.Serve()
+}
+
+func processContainerMetrics(contman *cm.ContainerManager, problemStore *model.ProblemStore, masterContext context.Context) {
+	 metricChan := make(chan *cm.ContainerMetrics, 5)
+	contman.StreamContainerMetrics(metricChan, masterContext)
+	for {
+		metric := <- metricChan
+		log.Info().Msgf("Container for %s using %f GB memory", metric.ProblemID, metric.MemUsageGB)
+		// problemStore.UpdateMemory(problemID, metric.MemUsageGB)
+	}
 }
 
 func recvPopulation(cman *cm.ContainerManager, popChan chan *ccomms.Population) {

@@ -49,6 +49,11 @@ func (cm *ContainerManager) HasProblem(problemID string) bool {
 	return ok
 }
 
+func (cm *ContainerManager) GetProblemIDFromContainerName(containerName string) (string, bool) {
+	val, ok := cm.containers[containerName]
+	return val, ok
+}
+
 func (cm *ContainerManager) AddProblem(problemID string, imagePath string, instances int) error {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()

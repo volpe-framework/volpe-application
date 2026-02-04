@@ -1,13 +1,17 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
 	"fmt"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 
 func RunAPI(port int, api *VolpeAPI) {
 	r := gin.Default()
+
+	r.Use(cors.Default())
 
 	r.POST("/problems/:id", api.RegisterProblem)
 	r.DELETE("/problems/:id", api.DeleteProblem)

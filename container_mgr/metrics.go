@@ -63,7 +63,7 @@ func (cm *ContainerManager) StreamContainerMetrics(metricChan chan *ContainerMet
 		}
 
 		for _, pmMetric := range(pmMetrics.Stats) {
-			problemID, ok := cm.containers[pmMetric.ContainerID]
+			problemID, ok := cm.containers[pmMetric.Name]
 			if !ok {
 				log.Debug().Msgf("Container %s is unknown, skipping", pmMetric.ContainerID)
 				continue

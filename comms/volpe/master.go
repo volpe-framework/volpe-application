@@ -32,7 +32,7 @@ type masterCommsServer struct {
 	UnimplementedVolpeMasterServer
 	chans_mut  sync.RWMutex
 	channs     map[string]chan *MasterMessage
-	metricChan chan *MetricsMessage
+	metricChan chan *DeviceMetricsMessage
 	popChan    chan *common.Population
 	sched SchedulerComms
 	probStore  ProblemStore
@@ -48,7 +48,7 @@ func mcsStreamHandlerThread(
 	workerID string,
 	stream grpc.BidiStreamingServer[WorkerMessage, MasterMessage],
 	masterSendChan chan *MasterMessage,
-	metricChan chan *MetricsMessage,
+	metricChan chan *DeviceMetricsMessage,
 	popChan chan *common.Population,
 	eventStream chan string,
 ) {
@@ -88,8 +88,8 @@ func mcsStreamHandlerThread(
 				jsonMsg, _ := json.Marshal(map[string]any{
 					"type": "WorkerMetrics",
 					"workerID": workerID,
-					"cpu": result.GetMetrics().GetCpuUtil(),
-					"mem": result.GetMetrics().GetMemUsage()/result.GetMetrics().GetMemTotal(),
+					"cpu": result.GetMetrics().GetCpuUtilPerc(),
+					"mem": result.GetMetrics().GetMemUsageGB(),
 				})
 				eventStream <- string(jsonMsg)
 
@@ -159,7 +159,7 @@ func mcsStreamHandlerThread(
 	}
 }
 
-func initMasterCommsServer(mcs *masterCommsServer, metricChan chan *MetricsMessage, eventStream chan string) (err error) {
+func initMasterCommsServer(mcs *masterCommsServer, metricChan chan *DeviceMetricsMessage, eventStream chan string) (err error) {
 	mcs.channs = make(map[string]chan *MasterMessage)
 	mcs.metricChan = metricChan
 	mcs.eventStream = eventStream
