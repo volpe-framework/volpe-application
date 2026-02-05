@@ -20,5 +20,7 @@ data: {"avgFitness":48951.4515625,"popSize":40,"problemID":"P1","type":"Received
 data: {"problemID":"P1","type":"ProblemStopped"}
 
 data: {"type":"WorkerLeft","workerID":"worker_287214130873935974"}
+
+data: { "type": "WorkerMetrics", "workerID": _, "cpuUtilPerc": _, "memUsageGB": _ }
 ```
 
