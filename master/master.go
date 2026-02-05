@@ -74,7 +74,7 @@ func main() {
 	schedule := make(scheduler.Schedule)
 	var schedMutex sync.Mutex
 
-	go sendMetric(metricChan, sched)
+	go sendMetric(metricChan, eventChannel, sched)
 
 	go processContainerMetrics(cman, problemStore, masterContext)
 

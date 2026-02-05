@@ -178,7 +178,7 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 		return errors.New("expected WorkerID msg first")
 	}
 	workerID := workerHelloMsg.GetWorkerID().GetId()
-	log.Info().Caller().Msgf("workerID %s connected to master", workerID)
+	log.Info().Msgf("workerID %s connected to master", workerID)
 	fmt.Println(workerID)
 
 
@@ -203,6 +203,8 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 	mcs.eventStream <- string(jsonMsg)
 
 	mcsStreamHandlerThread(workerID, stream, masterSendChan, mcs.metricChan, mcs.popChan, mcs.eventStream)
+
+	log.Info().Msgf("workerID %s left", workerID)
 
 	jsonMsg, _ = json.Marshal(map[string]string{
 		"type": "WorkerLeft",

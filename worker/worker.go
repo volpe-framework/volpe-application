@@ -144,27 +144,24 @@ func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInsta
 			return
 		}
 		problemID := adjInst.GetProblemID()
-		instances := adjInst.GetInstances()
-		if instances == 0 {
-			if cm.HasProblem(problemID) {
-				log.Info().Msgf("stopping problem %s", problemID)
-				cm.RemoveProblem(problemID)
-			}
-			continue
-		}
+		
 		if !cm.HasProblem(problemID) {
 			fname, err := wc.GetImageFile(problemID)
 			if err != nil {
 				log.Error().Caller().Msgf("error fetching problemID %s: %s", problemID, err.Error())
 				continue
 			}
-			err = cm.AddProblem(problemID, fname, int(adjInst.GetInstances()))
+			err = cm.AddProblem(problemID, fname)
 			if err != nil {
-				log.Error().Caller().Msgf("error running problem %s: %s", problemID, err.Error())
+				log.Error().Caller().Msgf("error adding problem %s: %s", problemID, err.Error())
 				continue
 			}
-			log.Info().Caller().Msgf("Running new problem %s", problemID)
+			log.Info().Caller().Msgf("Added problem %s", problemID)
 		}
-		cm.HandleInstancesEvent(adjInst)
+		err := cm.HandleInstancesEvent(adjInst)
+		if err != nil {
+			log.Err(err).Msgf("failed to handle instance event for %s, to instances %d", problemID, adjInst.GetInstances())
+			continue
+		}
 	}
 }

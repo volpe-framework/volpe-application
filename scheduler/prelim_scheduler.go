@@ -104,7 +104,7 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 			for _, p := range ss.problems {
 				pMem := max(0.5, p.MemoryUsage)
 				if pMem == 0.5 {
-					log.Warn().Msgf("Invalid memory for Problem %s", p.ProblemID)
+					log.Warn().Msgf("Invalid memory %f GB for Problem %s", p.MemoryUsage, p.ProblemID)
 				}
 				if remainingMem >= pMem {
 					sched.Set(w.WorkerID, p.ProblemID, sched.Get(w.WorkerID, p.ProblemID)+1) 

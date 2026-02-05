@@ -2,10 +2,13 @@ package api
 
 import (
 	"io"
-	"time"
 	"os"
+	"time"
+
 	// "volpe-framework/comms/common"
+	"volpe-framework/comms/common"
 	ccomms "volpe-framework/comms/container"
+	"volpe-framework/comms/volpe"
 
 	contman "volpe-framework/container_mgr"
 	"volpe-framework/master/model"
@@ -139,17 +142,33 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 		return
 	}
 
-	jsonMsg, _ := json.Marshal(map[string]any{
-		"type": "ProblemStarted",
-		"problemID": problemID,
-		"islands": problem.IslandCount,
-		"mem": problem.MemoryUsage,
-	})
-	va.eventStream <- string(jsonMsg)
 
 	va.sched.AddProblem(problem)
-	va.contman.AddProblem(problemID, fname, 1)
-	c.Status(200)
+	va.contman.AddProblem(problemID, fname)
+	err := va.contman.HandleInstancesEvent(
+		&volpe.AdjustInstancesMessage{
+			ProblemID: problemID,
+			Instances: 1,
+			Seed: &common.Population{
+				ProblemID: &problemID,
+				Members: []*common.Individual{},
+			},
+		},
+	)
+	if err != nil {
+		log.Err(err).Msgf("failed to add problem")
+		c.Status(501)
+	} else {
+		jsonMsg, _ := json.Marshal(map[string]any{
+			"type": "ProblemStarted",
+			"problemID": problemID,
+			"islands": problem.IslandCount,
+			"mem": problem.MemoryUsage,
+		})
+		va.eventStream <- string(jsonMsg)
+
+		c.Status(200)
+	}
 }
 
 func (va *VolpeAPI) distributeResults() {
