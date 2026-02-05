@@ -1,18 +1,12 @@
-import struct
-import threading
-import concurrent.futures
 from array import array
-from typing import override
+import time
+import csv
 
-import grpc
 import tsplib95 as tsplib
 from deap import base, creator, tools, algorithms
 import random
 
-# Protobuf imports
-import volpe_container_pb2 as pb
-import common_pb2 as pbc
-import volpe_container_pb2_grpc as vp
+import multiprocessing
 
 # --- TSP Setup ---
 problem = tsplib.load_problem('gil262.tsp')
@@ -22,6 +16,7 @@ LAMBDA_SIZE = BASE_POPULATION_SIZE*7
 CXPROB = 0.5
 MUTATION_RATE = 0.2
 MAXTIME=33000
+RUNS=5
 
 # --- DEAP Configuration ---
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
@@ -43,12 +38,6 @@ toolbox.register("mate", tools.cxOrdered)
 toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.05)
 toolbox.register("select", tools.selTournament, tournsize=3)
 
-# --- Serialization Utilities ---
-# 'i' is signed 4-byte integer.
-STRUCT_FORMAT = f">{NDIM}i"
-
-RUNS=5
-
 def main():
     print("Starting sequential optimization for TSP262 using parallel DEAP/SCOOP...")
 
@@ -56,17 +45,12 @@ def main():
     for run_no in range(1, RUNS+1):
         print(f"\n--- TSP262 Run {run_no}/{RUNS} ---")
         # Prepare output CSV per function/run
-        output_filename = f"{func_name}_run{run_no}.csv"
+        output_filename = f"TSP262_run{run_no}.csv"
 
         # Initialize population and tracking
         start_time = time.time()
         pop = toolbox.population(n=BASE_POPULATION_SIZE)
         hof = tools.HallOfFame(1)
-
-        # Statistics for logging (optional verbose via DEAP)
-        stats = tools.Statistics(lambda ind: ind.fitness.values)
-        stats.register("avg", np.mean)
-        stats.register("min", np.min)
 
         # Evaluate the initial population and push to HoF
         invalid_ind = [ind for ind in pop if not ind.fitness.valid]
@@ -95,7 +79,7 @@ def main():
                         cxpb=CXPROB, mutpb=MUTATION_RATE,
                         lambda_=LAMBDA_SIZE,
                         mu=BASE_POPULATION_SIZE,
-                        ngen=1, stats=stats, halloffame=hof, verbose=True
+                        ngen=1, halloffame=hof, verbose=True
                     )
                     cur = time.time()
                     if cur - last_write > 5:
@@ -119,12 +103,9 @@ def main():
 if __name__ == "__main__":
     # SCOOP requires the entry point to be wrapped in the main function.
     # The actual execution happens when launching via the command line.
- 
+    pool = multiprocessing.Pool(processes=8)
+    toolbox.register("map", pool.map)
 
-# --- Servicer Implementation ---
-if __name__ == '__main__':
-    server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=10))
-    vp.add_VolpeContainerServicer_to_server(VolpeGreeterServicer(), server)
-    server.add_insecure_port("0.0.0.0:8081")
-    server.start()
-    server.wait_for_termination()
+
+    main()
+ 
