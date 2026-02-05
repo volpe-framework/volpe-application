@@ -50,13 +50,18 @@ func (cm *ContainerManager) HasProblem(problemID string) bool {
 }
 
 func (cm *ContainerManager) GetProblemIDFromContainerName(containerName string) (string, bool) {
+	cm.pcMut.Lock()
+	defer cm.pcMut.Unlock()
+
 	val, ok := cm.containers[containerName]
 	return val, ok
 }
 
-func (cm *ContainerManager) AddProblem(problemID string, imagePath string, instances int) error {
+func (cm *ContainerManager) AddProblem(problemID string, imagePath string) error {
+	// Only registers a problem, does not create instances
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
+
 	_, ok := cm.problemContainers[problemID]
 	cm.images[problemID] = imagePath
 	if ok {
@@ -65,17 +70,17 @@ func (cm *ContainerManager) AddProblem(problemID string, imagePath string, insta
 		return errors.New("problemID already has container")
 	}
 
-	instSlice := make([]*ProblemContainer, instances)
+	instSlice := make([]*ProblemContainer, 0)
 
-	for inst := 0; inst < instances; inst++ {
-		pc, err := NewProblemContainer(problemID, imagePath, cm.worker)
-		if err != nil {
-			log.Error().Caller().Msgf("error starting pID %s with image %s: %s", problemID, imagePath, err.Error())
-			return err
-		}
-		cm.containers[pc.containerName] = problemID
-		instSlice[inst] = pc;
-	}
+	// for inst := 0; inst < instances; inst++ {
+	// 	pc, err := NewProblemContainer(problemID, imagePath, cm.worker)
+	// 	if err != nil {
+	// 		log.Error().Caller().Msgf("error starting pID %s with image %s: %s", problemID, imagePath, err.Error())
+	// 		return err
+	// 	}
+	// 	cm.containers[pc.containerName] = problemID
+	// 	instSlice[inst] = pc;
+	// }
 
 
 	cm.problemContainers[problemID] = instSlice
@@ -83,6 +88,7 @@ func (cm *ContainerManager) AddProblem(problemID string, imagePath string, insta
 }
 
 func (cm *ContainerManager) RemoveProblem(problemID string) error {
+	// Stops all containers and removes the problem itself
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
 
@@ -215,28 +221,18 @@ func (cm *ContainerManager) IncorporatePopulation(pop *common.Population) {
 	}
 }
 
-func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMessage) {
-	cm.pcMut.Lock()
-	defer cm.pcMut.Unlock()
-	containers, ok := cm.problemContainers[event.GetProblemID()]
-	if !ok {
-		log.Error().Caller().Msgf("Received msg for problem ID %s, but problem container does not exist, creation not handled yet", event.GetProblemID())
-		// TODO: add logic to create container on worker
-		return
-	}
-	problemID := event.GetProblemID()
-	instances := int(event.GetInstances())
-	if len(containers) < instances {
+func (cm *ContainerManager) adjustInstances(containers []*ProblemContainer, problemID string, instances int, seedPop []*common.Individual) ([]*ProblemContainer, error) {
+	if len(containers) < int(instances) {
 		log.Info().Msgf("Increasing instance count for problem %s to %d", problemID, instances)
 		containers = slices.Grow(containers, instances-len(containers))
 		for i := len(containers); i < instances; i++ {
 			pc, err := NewProblemContainer(problemID, cm.images[problemID], cm.worker)
 			if err != nil {
-				log.Error().Caller().Msgf("error starting pID %s with image %s: %s", problemID, cm.images[problemID], err.Error())
-				return
+				// log.Error().Caller().Msgf("error starting pID %s with image %s: %s", problemID, cm.images[problemID], err.Error())
+				return nil, err
 			}
 			cm.containers[pc.containerName] = problemID
-			containers[i] = pc
+			containers = append(containers, pc)
 		}
 		cm.problemContainers[problemID] = containers
 	} else if len(containers) > instances {
@@ -247,7 +243,6 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 		cm.problemContainers[problemID] = containers[:instances]
 		containers = containers[:instances]
 	}
-	seedPop := event.GetSeed().Members
 	perContainer := len(seedPop)/len(containers)
 	log.Debug().Msgf("Problem: %s Instances: %d SeedPop: %d", problemID, instances, len(seedPop))
 	for i, cont := range(containers) {
@@ -257,10 +252,34 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 		}
 		_, err := cont.commsClient.InitFromSeedPopulation(context.Background(), &newPop)
 		if err != nil {
-			log.Error().Caller().Msgf("error incorporating popln %s: %s", problemID, err.Error())
-			return
+			// log.Error().Caller().Msgf("error incorporating popln %s: %s", problemID, err.Error())
+			return nil, err
 		}
 	}
+	return containers, nil
+}
+
+func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMessage) error {
+	cm.pcMut.Lock()
+	defer cm.pcMut.Unlock()
+
+	instances := int(event.GetInstances())
+	problemID := event.GetProblemID()
+
+	if instances == 0 {
+		cm.RemoveProblem(problemID)
+	} else {
+		containers, ok := cm.problemContainers[problemID]
+		if !ok {
+			return fmt.Errorf("Container manager cannt handle instance event for unknown problemID %s", problemID)
+		}
+		containers, err := cm.adjustInstances(containers, problemID, instances, event.Seed.GetMembers())
+		if err != nil {
+			return err
+		}
+		cm.problemContainers[problemID] = containers
+	}
+	return nil
 }
 
 func (cm *ContainerManager) RegisterResultListener(problemID string, channel chan *ccoms.ResultPopulation) error {

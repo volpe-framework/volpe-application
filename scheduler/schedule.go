@@ -28,6 +28,6 @@ func (s Schedule) Apply(applyFunc func (workerID string, problemID string, val i
 
 func (s Schedule) Reset() {
 	for k := range s {
-		s[k] = 0
+		delete(s, k)
 	}
 }
