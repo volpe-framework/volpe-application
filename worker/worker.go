@@ -5,39 +5,76 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"os"
+	"runtime"
 	"time"
 
 	vcomms "volpe-framework/comms/volpe"
 	contman "volpe-framework/container_mgr"
 
-	memorystat "github.com/mackerelio/go-osstat/memory"
 	loadstat "github.com/mackerelio/go-osstat/loadavg"
+	memorystat "github.com/mackerelio/go-osstat/memory"
 	networkstat "github.com/mackerelio/go-osstat/network"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
+	"flag"
 )
 
 func main() {
 	// TODO: reenable when required
 	// metrics.InitOTelSDK()
 
+	configPath := ""
+
+	flag.StringVar(&configPath, "config-path", "", "Location of the .ini config file for the VolPE worker")
+
+	flag.Parse()
+
+	workerConfig, err := LoadConfig(configPath)
+	if err != nil {
+		log.Err(err).Msgf("failed to load config from \"%s\"", configPath)
+		return
+	}
+
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 
 	workerContext, cancelFunc := context.WithCancel(context.TODO())
 	defer cancelFunc()
 
-	endpoint, ok := os.LookupEnv("VOLPE_MASTER")
-	if !ok {
-		log.Warn().Caller().Msgf("using default VOLPE_MASTER of localhost:8080")
-		endpoint = "localhost:8080"
-	}
-	workerID, ok := os.LookupEnv("VOLPE_WORKER_ID")
-	if !ok {
-		workerID = "worker_" + fmt.Sprintf("%d", rand.Int())
-		log.Warn().Caller().Msgf("VOLPE_WORKER_ID not found, using %s instead", workerID)
+	volpeMaster := workerConfig.GeneralConfig.VolPEMaster
+
+	if volpeMaster == "" {
+		log.Warn().Msgf("VolPE master not found in config, loading from env variable VOLPE_MASTER")
+
+		var ok bool
+		volpeMaster, ok = os.LookupEnv("VOLPE_MASTER")
+		if !ok {
+			log.Warn().Msgf("using default VOLPE_MASTER of localhost:8080")
+			volpeMaster = "localhost:8080"
+		}
 	}
 
-	wc, err := vcomms.NewWorkerComms(endpoint, workerID)
+	workerID := workerConfig.GeneralConfig.WorkerID
+
+	if workerID == "" {
+		workerID = "worker_" + fmt.Sprintf("%d", rand.Int())
+		log.Warn().Caller().Msgf("Worker ID not found, using %s instead", workerID)
+	}
+
+	memoryGB := workerConfig.ResourceConfig.MemoryGB
+	if memoryGB == 0 {
+		stats, _ := memorystat.Get()
+		memoryGB = float32(stats.Total)/(1024*1024*1024)
+		log.Warn().Caller().Msgf("Memory allocation not found, using %f GB instead", memoryGB)
+	}
+
+	cpuCount := workerConfig.ResourceConfig.CpuCount
+	if cpuCount == 0 {
+		cpuCount = int32(runtime.NumCPU())
+		log.Warn().Caller().Msgf("CPU count not found, using %d CPUs instead", cpuCount)
+	}
+
+	wc, err := vcomms.NewWorkerComms(volpeMaster, workerID, memoryGB, cpuCount)
 	if err != nil {
 		log.Fatal().Caller().Msgf("could not create workercomms: %s", err.Error())
 		panic(err)

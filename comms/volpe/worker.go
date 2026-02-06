@@ -27,7 +27,7 @@ type WorkerComms struct {
 	// TODO: include something for population
 }
 
-func NewWorkerComms(endpoint string, workerID string) (*WorkerComms, error) {
+func NewWorkerComms(endpoint string, workerID string, memoryLimit float32, cpuCount int32) (*WorkerComms, error) {
 	// TODO: channel or something for population adjust
 	wc := new(WorkerComms)
 	wc.workerID = workerID
