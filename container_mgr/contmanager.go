@@ -124,31 +124,31 @@ func (cm *ContainerManager) GetSubpopulations(perContainer int) ([]*common.Popul
 
 			members := tmp.GetMembers()
 
-			// TODO: ditch this additional logging
-			if cm.worker {
-				bestFitness := members[0].GetFitness()
-				bestIndex := 0
-				for i, memb := range members[1:] {
-					fit := memb.GetFitness()
-					if fit < bestFitness {
-						bestFitness = fit
-						bestIndex = i
-					}
-				}
-				fname := cont.containerName+".csv"
-				f, err := os.OpenFile(fname, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0644)
-				if err != nil {
-					log.Err(err).Msgf("failed while creating/opening file %s to log best", fname)
-				} else {
-					dataString := fmt.Sprintf("%f,%s\n", bestFitness, base64.RawStdEncoding.EncodeToString(members[bestIndex].GetGenotype()))
-					log.Debug().Msgf("Container subpop: %s", dataString)
-					_, err := f.WriteString(dataString)
-					if err != nil {
-						log.Err(err).Msgf("failed to write container pop log")
-					}
-					f.Close()
-				}
-			}
+			// TODO: allow configuration for this additional logging
+			// if cm.worker {
+			// 	bestFitness := members[0].GetFitness()
+			// 	bestIndex := 0
+			// 	for i, memb := range members[1:] {
+			// 		fit := memb.GetFitness()
+			// 		if fit < bestFitness {
+			// 			bestFitness = fit
+			// 			bestIndex = i
+			// 		}
+			// 	}
+			// 	fname := cont.containerName+".csv"
+			// 	f, err := os.OpenFile(fname, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0644)
+			// 	if err != nil {
+			// 		log.Err(err).Msgf("failed while creating/opening file %s to log best", fname)
+			// 	} else {
+			// 		dataString := fmt.Sprintf("%f,%s\n", bestFitness, base64.RawStdEncoding.EncodeToString(members[bestIndex].GetGenotype()))
+			// 		log.Debug().Msgf("Container subpop: %s", dataString)
+			// 		_, err := f.WriteString(dataString)
+			// 		if err != nil {
+			// 			log.Err(err).Msgf("failed to write container pop log")
+			// 		}
+			// 		f.Close()
+			// 	}
+			// }
 
 			population.Members = slices.Grow(population.Members, len(members))
 			for _, memb := range(members) {
