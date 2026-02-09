@@ -48,17 +48,7 @@ func NewWorkerComms(endpoint string, workerID string, memoryLimit float32, cpuCo
 		return nil, err
 	}
 
-	memGB := float32(0)
-
-	memStats, err := memory.Get()
-	if err != nil {
-		log.Err(err).Msgf("Failed to fetch memory capacity")
-		memGB = 4
-	}
-
-	memGB = float32(memStats.Total)/float32(1024*1024*1024)
-
-	log.Debug().Msgf("Memory limit: %f GB", memGB)
+	log.Debug().Msgf("Memory limit: %f GB", memoryLimit)
 
 	err = wc.stream.Send(&WorkerMessage{
 		Message: &WorkerMessage_Hello{
@@ -66,7 +56,7 @@ func NewWorkerComms(endpoint string, workerID string, memoryLimit float32, cpuCo
 				WorkerID: &WorkerID{Id: workerID},
 				// TODO: use system config 
 				CpuCount: int32(runtime.NumCPU()),
-				MemoryGB: float32(memGB),
+				MemoryGB: float32(memoryLimit),
 			},
 		},
 	})

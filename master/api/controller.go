@@ -156,8 +156,8 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 		},
 	)
 	if err != nil {
-		log.Err(err).Msgf("failed to add problem")
-		c.Status(501)
+		log.Err(err).Msgf("failed to add problem %s", problemID)
+		c.Status(500)
 	} else {
 		jsonMsg, _ := json.Marshal(map[string]any{
 			"type": "ProblemStarted",
