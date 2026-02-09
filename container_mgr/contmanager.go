@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"sync"
+	"time"
 	"volpe-framework/comms/common"
 	ccoms "volpe-framework/comms/container"
 	"volpe-framework/comms/volpe"
@@ -248,10 +249,18 @@ func (cm *ContainerManager) adjustInstances(containers []*ProblemContainer, prob
 			ProblemID: &problemID,
 			Members: seedPop[i*perContainer:(i+1)*perContainer],
 		}
-		_, err := cont.commsClient.InitFromSeedPopulation(context.Background(), &newPop)
-		if err != nil {
-			// log.Error().Caller().Msgf("error incorporating popln %s: %s", problemID, err.Error())
-			return nil, err
+		n_failures := 0
+		for n_failures <= 5 {
+			_, err := cont.commsClient.InitFromSeedPopulation(context.Background(), &newPop)
+			if err == nil {
+				break 
+			} else {
+				log.Warn().Msgf("error initializing container popln %s: %s", problemID, err.Error())
+				n_failures += 1
+			}
+		}
+		if n_failures >= 5 {
+			return nil, errors.New("Failed to initialize population")
 		}
 	}
 	return containers, nil
