@@ -24,6 +24,7 @@ type ProblemContainer struct {
 	commsClient ccomms.VolpeContainerClient
 	resultChannels map[chan *ccomms.ResultPopulation]bool
 	rcMut sync.Mutex
+	containerContext context.Context
 	cancel context.CancelFunc
 }
 
@@ -33,7 +34,7 @@ func genContainerName(problemID string) string {
 
 const DEFAULT_CONTAINER_PORT uint16 = 8081
 
-func NewProblemContainer(problemID string, imagePath string, worker bool) (*ProblemContainer, error) {
+func NewProblemContainer(problemID string, imagePath string, worker bool, problemContext context.Context) (*ProblemContainer, error) {
 	pc := new(ProblemContainer)
 	pc.problemID = problemID
 	pc.containerName = genContainerName(problemID)
@@ -53,15 +54,16 @@ func NewProblemContainer(problemID string, imagePath string, worker bool) (*Prob
 	}
 	pc.commsClient = ccomms.NewVolpeContainerClient(cc)
 
-	var ctx context.Context
-	ctx, pc.cancel = context.WithCancel(context.Background())
+	pc.containerContext, pc.cancel = context.WithCancel(problemContext)
+
+	context.AfterFunc(pc.containerContext, pc.stopContainer)
 
 	if !worker {
-		go pc.sendResults(ctx)
+		go pc.sendResults()
 	}
 
 	if worker {
-		go pc.runGenerations(ctx)
+		go pc.runGenerations()
 	}
 
 	return pc, nil
@@ -86,7 +88,7 @@ func (pc *ProblemContainer) DeRegisterResultChannel(channel chan *ccomms.ResultP
 }
 
 func (pc *ProblemContainer) GetRandomSubpopulation(count int) (*comms.Population, error) {
-	pop, err := pc.commsClient.GetRandom(context.Background(), &ccomms.PopulationSize{Size: int32(count)})
+	pop, err := pc.commsClient.GetRandom(pc.containerContext, &ccomms.PopulationSize{Size: int32(count)})
 	if err != nil {
 		log.Error().Caller().Msg(err.Error())
 		return nil, err
@@ -96,7 +98,7 @@ func (pc *ProblemContainer) GetRandomSubpopulation(count int) (*comms.Population
 }
 
 func (pc *ProblemContainer) GetSubpopulation(count int) (*comms.Population, error) {
-	pop, err := pc.commsClient.GetBestPopulation(context.Background(), &ccomms.PopulationSize{Size: int32(count)})
+	pop, err := pc.commsClient.GetBestPopulation(pc.containerContext, &ccomms.PopulationSize{Size: int32(count)})
 	if err != nil {
 		log.Error().Caller().Msg(err.Error())
 		return nil, err
@@ -106,33 +108,43 @@ func (pc *ProblemContainer) GetSubpopulation(count int) (*comms.Population, erro
 }
 
 func (pc *ProblemContainer) HandleEvents(eventChannel chan *vcomms.AdjustPopulationMessage) {
+	done := pc.containerContext.Done()
 	for {
-		msg, ok := <-eventChannel
-		if !ok {
-			log.Warn().Caller().Msgf("event channel for problemID %s was closed", pc.problemID)
-			return
-		}
-		popSize := &ccomms.PopulationSize{Size: msg.GetSize()}
-		reply, err := pc.commsClient.AdjustPopulationSize(context.Background(), popSize)
-		if err != nil {
-			log.Error().Caller().Msg(err.Error() + ", reply: " + reply.GetMessage())
-			continue
-		}
+		select {
+		case _ = <- done:
+			err := pc.containerContext.Err()
+			if err != nil {
+				log.Err(err).Msgf("exiting handleEvents for problem %s", pc.problemID)
+				return
+			}
+		case msg, ok := <- eventChannel:
+			if !ok {
+				log.Warn().Caller().Msgf("event channel for problemID %s was closed", pc.problemID)
+				return
+			}
+			popSize := &ccomms.PopulationSize{Size: msg.GetSize()}
+			reply, err := pc.commsClient.AdjustPopulationSize(pc.containerContext, popSize)
+			if err != nil {
+				log.Error().Caller().Msg(err.Error() + ", reply: " + reply.GetMessage())
+				continue
+			}
 
-		pop := &comms.Population{Members: msg.GetSeed().GetMembers()}
-		reply, err = pc.commsClient.InitFromSeedPopulation(context.Background(), pop)
-		if err != nil {
-			log.Error().Caller().Msg(err.Error() + ", reply: " + reply.GetMessage())
-			continue
+			pop := &comms.Population{Members: msg.GetSeed().GetMembers()}
+			reply, err = pc.commsClient.InitFromSeedPopulation(pc.containerContext, pop)
+			if err != nil {
+				log.Error().Caller().Msg(err.Error() + ", reply: " + reply.GetMessage())
+				continue
+			}
+
 		}
 	}
 }
 
-func (pc *ProblemContainer) sendResultOnce(ctx context.Context) {
+func (pc *ProblemContainer) sendResultOnce() {
 	pc.rcMut.Lock()
 	defer pc.rcMut.Unlock()
 
-	result, err := pc.commsClient.GetResults(ctx, &ccomms.PopulationSize{Size: 10})
+	result, err := pc.commsClient.GetResults(pc.containerContext, &ccomms.PopulationSize{Size: 10})
 	if err != nil {
 		log.Err(err).Caller().Msgf("fetching best popln for %s failed", pc.problemID)
 		return
@@ -143,27 +155,28 @@ func (pc *ProblemContainer) sendResultOnce(ctx context.Context) {
 	}
 }
 
-func (pc *ProblemContainer) sendResults(ctx context.Context) {
+func (pc *ProblemContainer) sendResults() {
 	for {
 		time.Sleep(5*time.Second)
-		if ctx.Err() != nil {
+		if pc.containerContext.Err() != nil {
+			log.Err(pc.containerContext.Err()).Msgf("Stopping sendResults for problem %s", pc.problemID)
 			break
 		}
-		pc.sendResultOnce(ctx)
+		pc.sendResultOnce()
 	}
 	for channel, _ := range pc.resultChannels {
 		close(channel)
 	}
 }
 
-func (pc *ProblemContainer) runGenerations(ctx context.Context) {
+func (pc *ProblemContainer) runGenerations() {
 	for {
 		// TODO: configure generation run count
-		_, err := pc.commsClient.RunForGenerations(ctx, &ccomms.PopulationSize{Size: 3})
+		_, err := pc.commsClient.RunForGenerations(pc.containerContext, &ccomms.PopulationSize{Size: 3})
+		if pc.containerContext.Err() != nil {
+			break
+		}
 		if err != nil {
-			if ctx.Err() != nil {
-				break
-			}
 			log.Err(err).Caller().Msgf("running gen for %s failed", pc.problemID)
 			time.Sleep(5*time.Second)
 		}
@@ -171,13 +184,17 @@ func (pc *ProblemContainer) runGenerations(ctx context.Context) {
 	log.Info().Caller().Msgf("stopping gen for %s", pc.problemID)
 }
 
-func (pc *ProblemContainer) StopContainer() {
+func (pc *ProblemContainer) Stop() {
+	pc.cancel()
+}
+
+func (pc *ProblemContainer) stopContainer() {
+	log.Debug().Msgf("stopping container %s", pc.containerName)
 	podman, err := NewPodmanConnection()
 	if err != nil {
 		log.Err(err).Caller().Msgf("container name: %s", pc.containerName)
 		return
 	}
-	pc.cancel()
 	forceRemove := true
 	options := containers.RemoveOptions{
 		Force: &forceRemove,
