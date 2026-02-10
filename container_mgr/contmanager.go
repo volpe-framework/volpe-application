@@ -1,22 +1,18 @@
-// contai// container manager and functions
+// container manager and functions
 package container_mgr
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"runtime"
 	"slices"
 	"sync"
-	"time"
 
 	"volpe-framework/comms/common"
 	ccoms "volpe-framework/comms/container"
 	"volpe-framework/comms/volpe"
 
 	"time"
-
 	"github.com/rs/zerolog/log"
 )
 
@@ -86,7 +82,7 @@ func (cm *ContainerManager) unlockMut() {
 }
 
 // starts problem container and adds problem to problemContainers
-func (cm *ContainerManager) AddProblem(problemID string, imagePath string, instances int) error {
+func (cm *ContainerManager) AddProblem(problemID string, imagePath string) error {
 	// Only registers a problem, does not create instances
 
 	cm.lockMut()
@@ -149,31 +145,31 @@ func (cm *ContainerManager) GetSubpopulations(perContainer int) ([]*common.Popul
 
 			members := tmp.GetMembers()
 
-			// TODO: ditch this additional logging
-			if cm.worker {
-				bestFitness := members[0].GetFitness()
-				bestIndex := 0
-				for i, memb := range members[1:] {
-					fit := memb.GetFitness()
-					if fit < bestFitness {
-						bestFitness = fit
-						bestIndex = i
-					}
-				}
-				fname := cont.containerName + ".csv"
-				f, err := os.OpenFile(fname, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-				if err != nil {
-					log.Err(err).Msgf("failed while creating/opening file %s to log best", fname)
-				} else {
-					dataString := fmt.Sprintf("%f,%s\n", bestFitness, base64.RawStdEncoding.EncodeToString(members[bestIndex].GetGenotype()))
-					log.Debug().Msgf("Container subpop: %s", dataString)
-					_, err := f.WriteString(dataString)
-					if err != nil {
-						log.Err(err).Msgf("failed to write container pop log")
-					}
-					f.Close()
-				}
-			}
+			// TODO: config for this additional logging
+			// if cm.worker {
+			// 	bestFitness := members[0].GetFitness()
+			// 	bestIndex := 0
+			// 	for i, memb := range members[1:] {
+			// 		fit := memb.GetFitness()
+			// 		if fit < bestFitness {
+			// 			bestFitness = fit
+			// 			bestIndex = i
+			// 		}
+			// 	}
+			// 	fname := cont.containerName + ".csv"
+			// 	f, err := os.OpenFile(fname, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+			// 	if err != nil {
+			// 		log.Err(err).Msgf("failed while creating/opening file %s to log best", fname)
+			// 	} else {
+			// 		dataString := fmt.Sprintf("%f,%s\n", bestFitness, base64.RawStdEncoding.EncodeToString(members[bestIndex].GetGenotype()))
+			// 		log.Debug().Msgf("Container subpop: %s", dataString)
+			// 		_, err := f.WriteString(dataString)
+			// 		if err != nil {
+			// 			log.Err(err).Msgf("failed to write container pop log")
+			// 		}
+			// 		f.Close()
+			// 	}
+			// }
 
 			population.Members = slices.Grow(population.Members, len(members))
 			for _, memb := range members {
@@ -302,8 +298,6 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 	} else {
 		_, ok := cm.problemContainers[problemID]
 		if !ok {
-			log.Error().Caller().Msgf("Received msg for problem ID %s, but problem container does not exist, creation not handled yet", event.GetProblemID())
-			// TODO: add logic to create container on worker
 			return ErrUnknownProblem
 		}
 		err := cm.adjustInstances(problemID, instances, event.Seed.GetMembers())
@@ -314,14 +308,13 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 	return nil
 }
 
-// INFO registers result channel TRUE
+// registers result channel for a problem
 func (cm *ContainerManager) RegisterResultListener(problemID string, channel chan *ccoms.ResultPopulation) error {
 	cm.lockMut()
 	defer cm.unlockMut()
 
 	problem, ok := cm.problemContainers[problemID]
 	if !ok {
-		log.Error().Caller().Msgf("unknown problemID %s", problemID)
 		return ErrUnknownProblem
 	}
 	if len(problem.problemContainers) < 1 {
@@ -332,14 +325,13 @@ func (cm *ContainerManager) RegisterResultListener(problemID string, channel cha
 	return nil
 }
 
-// deregisters resutl channel to FALSE
+// deregisters result channel
 func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan *ccoms.ResultPopulation) error {
 	cm.lockMut()
 	defer cm.unlockMut()
 
 	problem, ok := cm.problemContainers[problemID]
 	if !ok {
-		log.Error().Caller().Msgf("unknown problemID %s", problemID)
 		return ErrUnknownProblem
 	}
 	if len(problem.problemContainers) < 1 {
