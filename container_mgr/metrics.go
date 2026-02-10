@@ -1,5 +1,8 @@
 package container_mgr
 
+// TODO: Needs to be done on a problemContainer level
+
+/*
 import (
 	"context"
 	"time"
@@ -87,3 +90,4 @@ func (cm *ContainerManager) StreamContainerMetrics(metricChan chan *ContainerMet
 		time.Sleep(5*time.Second)
 	}
 }
+*/

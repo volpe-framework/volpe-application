@@ -79,7 +79,7 @@ func main() {
 		log.Fatal().Caller().Msgf("could not create workercomms: %s", err.Error())
 		panic(err)
 	}
-	cm := contman.NewContainerManager(true)
+	cm := contman.NewContainerManager(true, workerContext)
 
 	go deviceMetricsExporter(workerContext, wc)
 
@@ -96,19 +96,20 @@ func main() {
 	go adjInstHandler(wc, adjInstChan, cm)
 	
 	wc.HandleStreams(adjInstChan)
+
 }
 
 // TODO: rewrite handler based on any aggregation of metrics needed
-func workerMetricsHandler(metricChan chan *contman.ContainerMetrics, wc *vcomms.WorkerComms) {
-	for {
-		metrics, ok := <- metricChan 
-		if !ok {
-			log.Info().Msgf("Metrics channel closed, exiting metrics handler")
-			return
-		}
-		log.Debug().Msgf("Container %s using %f GB memory", metrics.ContainerName, metrics.MemUsageGB)
-	}
-}
+// func workerMetricsHandler(metricChan chan *contman.ContainerMetrics, wc *vcomms.WorkerComms) {
+// 	for {
+// 		metrics, ok := <- metricChan 
+// 		if !ok {
+// 			log.Info().Msgf("Metrics channel closed, exiting metrics handler")
+// 			return
+// 		}
+// 		log.Debug().Msgf("Container %s using %f GB memory", metrics.ContainerName, metrics.MemUsageGB)
+// 	}
+// }
 
 func deviceMetricsExporter(ctx context.Context, wc *vcomms.WorkerComms) {
 	memStats, err := memorystat.Get()
