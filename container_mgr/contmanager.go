@@ -1,12 +1,16 @@
+// contai// container manager and functions
 package container_mgr
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"runtime"
 	"slices"
 	"sync"
+	"time"
+
 	"volpe-framework/comms/common"
 	ccoms "volpe-framework/comms/container"
 	"volpe-framework/comms/volpe"
@@ -18,9 +22,8 @@ import (
 
 var ErrUnknownProblem error = errors.New("This problem has no containers")
 
-// Manages an entire set of containers
+// Manages an entire set of problem containers
 // TODO: testing for this module
-
 type ContainerManager struct {
 	problemContainers 	map[string]*cmProblem // map from problemID to list of containers
 	pcMut             	sync.Mutex
@@ -30,6 +33,7 @@ type ContainerManager struct {
 	worker 				bool
 }
 
+// stores all the information related to an individual problem
 type cmProblem struct {
 	problemContainers 	[]*ProblemContainer
 	problemContext 		context.Context
@@ -37,6 +41,7 @@ type cmProblem struct {
 	image				string
 }
 
+// constructor for a new container manager
 func NewContainerManager(worker bool, rootContext context.Context) *ContainerManager {
 	cm := new(ContainerManager)
 	// cm.meter = otel.Meter("volpe-framework")
@@ -47,6 +52,7 @@ func NewContainerManager(worker bool, rootContext context.Context) *ContainerMan
 	return cm
 }
 
+// checks if container manager has a specific problem
 func (cm *ContainerManager) HasProblem(problemID string) bool {
 	cm.lockMut()
 	defer cm.unlockMut()
@@ -79,7 +85,8 @@ func (cm *ContainerManager) unlockMut() {
 	// }
 }
 
-func (cm *ContainerManager) AddProblem(problemID string, imagePath string) error {
+// starts problem container and adds problem to problemContainers
+func (cm *ContainerManager) AddProblem(problemID string, imagePath string, instances int) error {
 	// Only registers a problem, does not create instances
 
 	cm.lockMut()
@@ -101,6 +108,7 @@ func (cm *ContainerManager) AddProblem(problemID string, imagePath string) error
 	return nil
 }
 
+// remove problem container and removes from problemContainers
 func (cm *ContainerManager) removeProblem(problemID string) error {
 	// Stops all containers and removes the problem itself
 	log.Debug().Msg("called remove problem")
@@ -141,34 +149,34 @@ func (cm *ContainerManager) GetSubpopulations(perContainer int) ([]*common.Popul
 
 			members := tmp.GetMembers()
 
-			// TODO: allow configuration for this additional logging
-			// if cm.worker {
-			// 	bestFitness := members[0].GetFitness()
-			// 	bestIndex := 0
-			// 	for i, memb := range members[1:] {
-			// 		fit := memb.GetFitness()
-			// 		if fit < bestFitness {
-			// 			bestFitness = fit
-			// 			bestIndex = i
-			// 		}
-			// 	}
-			// 	fname := cont.containerName+".csv"
-			// 	f, err := os.OpenFile(fname, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0644)
-			// 	if err != nil {
-			// 		log.Err(err).Msgf("failed while creating/opening file %s to log best", fname)
-			// 	} else {
-			// 		dataString := fmt.Sprintf("%f,%s\n", bestFitness, base64.RawStdEncoding.EncodeToString(members[bestIndex].GetGenotype()))
-			// 		log.Debug().Msgf("Container subpop: %s", dataString)
-			// 		_, err := f.WriteString(dataString)
-			// 		if err != nil {
-			// 			log.Err(err).Msgf("failed to write container pop log")
-			// 		}
-			// 		f.Close()
-			// 	}
-			// }
+			// TODO: ditch this additional logging
+			if cm.worker {
+				bestFitness := members[0].GetFitness()
+				bestIndex := 0
+				for i, memb := range members[1:] {
+					fit := memb.GetFitness()
+					if fit < bestFitness {
+						bestFitness = fit
+						bestIndex = i
+					}
+				}
+				fname := cont.containerName + ".csv"
+				f, err := os.OpenFile(fname, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+				if err != nil {
+					log.Err(err).Msgf("failed while creating/opening file %s to log best", fname)
+				} else {
+					dataString := fmt.Sprintf("%f,%s\n", bestFitness, base64.RawStdEncoding.EncodeToString(members[bestIndex].GetGenotype()))
+					log.Debug().Msgf("Container subpop: %s", dataString)
+					_, err := f.WriteString(dataString)
+					if err != nil {
+						log.Err(err).Msgf("failed to write container pop log")
+					}
+					f.Close()
+				}
+			}
 
 			population.Members = slices.Grow(population.Members, len(members))
-			for _, memb := range(members) {
+			for _, memb := range members {
 				population.Members = append(population.Members, memb)
 			}
 		}
@@ -197,7 +205,7 @@ func (cm *ContainerManager) GetRandomSubpopulation(problemID string, perContaine
 		}
 		members := subpop.GetMembers()
 		population.Members = slices.Grow(population.Members, len(members))
-		for _, memb := range(members) {
+		for _, memb := range members {
 			population.Members = append(population.Members, memb)
 		}
 	}
@@ -210,14 +218,14 @@ func (cm *ContainerManager) IncorporatePopulation(pop *common.Population) error 
 
 	problem, ok := cm.problemContainers[pop.GetProblemID()]
 	if !ok {
-		return ErrUnknownProblem 
+		return ErrUnknownProblem
 	}
 
 	perContainer := len(pop.Members)/len(problem.problemContainers)
 	for i, cont := range(problem.problemContainers) {
 		newpop := common.Population{
-			ProblemID: pop.ProblemID, 
-			Members: pop.Members[i*perContainer:(i+1)*perContainer],
+			ProblemID: pop.ProblemID,
+			Members:   pop.Members[i*perContainer : (i+1)*perContainer],
 		}
 		reply, err := cont.commsClient.InitFromSeedPopulation(context.Background(), &newpop)
 		if err != nil {
@@ -256,21 +264,21 @@ func (cm *ContainerManager) adjustInstances(problemID string, instances int, see
 		problem.problemContainers = containers[:instances]
 		containers = containers[:instances]
 	}
-	perContainer := len(seedPop)/len(containers)
+	perContainer := len(seedPop) / len(containers)
 	log.Debug().Msgf("Problem: %s Instances: %d SeedPop: %d", problemID, instances, len(seedPop))
-	for i, cont := range(containers) {
+	for i, cont := range containers {
 		newPop := common.Population{
 			ProblemID: &problemID,
-			Members: seedPop[i*perContainer:(i+1)*perContainer],
+			Members:   seedPop[i*perContainer : (i+1)*perContainer],
 		}
 		n_failures := 0
 		for n_failures <= 5 {
 			_, err := cont.commsClient.InitFromSeedPopulation(context.Background(), &newPop)
 			if err == nil {
-				break 
+				break
 			} else {
 				log.Warn().Msgf("error initializing container popln %s: %s", problemID, err.Error())
-				time.Sleep(5*time.Second)
+				time.Sleep(5 * time.Second)
 				n_failures += 1
 			}
 		}
@@ -281,6 +289,7 @@ func (cm *ContainerManager) adjustInstances(problemID string, instances int, see
 	return nil
 }
 
+// adjusts number of running conatiners for a problem based on event
 func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMessage) error {
 	cm.lockMut()
 	defer cm.unlockMut()
@@ -293,6 +302,8 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 	} else {
 		_, ok := cm.problemContainers[problemID]
 		if !ok {
+			log.Error().Caller().Msgf("Received msg for problem ID %s, but problem container does not exist, creation not handled yet", event.GetProblemID())
+			// TODO: add logic to create container on worker
 			return ErrUnknownProblem
 		}
 		err := cm.adjustInstances(problemID, instances, event.Seed.GetMembers())
@@ -303,12 +314,14 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 	return nil
 }
 
+// INFO registers result channel TRUE
 func (cm *ContainerManager) RegisterResultListener(problemID string, channel chan *ccoms.ResultPopulation) error {
 	cm.lockMut()
 	defer cm.unlockMut()
 
 	problem, ok := cm.problemContainers[problemID]
 	if !ok {
+		log.Error().Caller().Msgf("unknown problemID %s", problemID)
 		return ErrUnknownProblem
 	}
 	if len(problem.problemContainers) < 1 {
@@ -319,12 +332,14 @@ func (cm *ContainerManager) RegisterResultListener(problemID string, channel cha
 	return nil
 }
 
+// deregisters resutl channel to FALSE
 func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan *ccoms.ResultPopulation) error {
 	cm.lockMut()
 	defer cm.unlockMut()
 
 	problem, ok := cm.problemContainers[problemID]
 	if !ok {
+		log.Error().Caller().Msgf("unknown problemID %s", problemID)
 		return ErrUnknownProblem
 	}
 	if len(problem.problemContainers) < 1 {
