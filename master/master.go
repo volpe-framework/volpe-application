@@ -105,8 +105,10 @@ func recvPopulation(cman *cm.ContainerManager, popChan chan *ccomms.Population) 
 			break
 		}
 		log.Info().Msgf("received population for problem %s", m.GetProblemID())
-		cman.IncorporatePopulation(m)
-		fmt.Println(m.GetProblemID() + " ", m.Members[0].Fitness)
+		err := cman.IncorporatePopulation(m)
+		if err != nil {
+			log.Err(err).Msgf("could not incorporate population %s", m.GetProblemID())
+		}
 	}
 }
 

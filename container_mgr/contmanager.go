@@ -6,17 +6,18 @@ import (
 	"fmt"
 	"slices"
 	"sync"
-	"time"
 	"volpe-framework/comms/common"
 	ccoms "volpe-framework/comms/container"
 	"volpe-framework/comms/volpe"
 
 	otelmetric "go.opentelemetry.io/otel/metric"
-
+	"time"
 	"github.com/rs/zerolog/log"
 
 	"go.opentelemetry.io/otel"
 )
+
+var ErrUnknownProblem error = errors.New("This problem has no containers")
 
 // Manages an entire set of containers
 // TODO: testing for this module
@@ -186,14 +187,13 @@ func (cm *ContainerManager) GetRandomSubpopulation(problemID string, perContaine
 	return population, nil
 }
 
-func (cm *ContainerManager) IncorporatePopulation(pop *common.Population) {
+func (cm *ContainerManager) IncorporatePopulation(pop *common.Population) error {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
 
 	containers, ok := cm.problemContainers[pop.GetProblemID()]
 	if !ok {
-		log.Error().Caller().Msgf("problemID %s nonexistent for incorp. population", pop.GetProblemID())
-		return
+		return ErrUnknownProblem 
 	}
 
 	perContainer := len(pop.Members)/len(containers)
@@ -204,20 +204,16 @@ func (cm *ContainerManager) IncorporatePopulation(pop *common.Population) {
 		}
 		reply, err := cont.commsClient.InitFromSeedPopulation(context.Background(), &newpop)
 		if err != nil {
-			log.Error().Caller().Msgf("couldn't incorp popln for problemID %s: %s",
-				pop.GetProblemID(),
-				err.Error(),
-			)
-			return
+			return err
 		}
 		if !reply.Success {
-			log.Error().Caller().Msgf("incorp failed for problem %s: %s",
+			return fmt.Errorf("incorp failed for problem %s: %s",
 				pop.GetProblemID(),
 				reply.GetMessage(),
 			)
-			return
 		}
 	}
+	return nil
 }
 
 func (cm *ContainerManager) adjustInstances(containers []*ProblemContainer, problemID string, instances int, seedPop []*common.Individual) ([]*ProblemContainer, error) {
@@ -256,6 +252,7 @@ func (cm *ContainerManager) adjustInstances(containers []*ProblemContainer, prob
 				break 
 			} else {
 				log.Warn().Msgf("error initializing container popln %s: %s", problemID, err.Error())
+				time.Sleep(5*time.Second)
 				n_failures += 1
 			}
 		}
@@ -278,7 +275,7 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 	} else {
 		containers, ok := cm.problemContainers[problemID]
 		if !ok {
-			return fmt.Errorf("Container manager cannt handle instance event for unknown problemID %s", problemID)
+			return ErrUnknownProblem
 		}
 		containers, err := cm.adjustInstances(containers, problemID, instances, event.Seed.GetMembers())
 		if err != nil {
@@ -295,8 +292,7 @@ func (cm *ContainerManager) RegisterResultListener(problemID string, channel cha
 
 	pc, ok := cm.problemContainers[problemID]
 	if !ok {
-		log.Error().Caller().Msgf("unknown problemID %s", problemID)
-		return errors.New("Unknown problemID")
+		return ErrUnknownProblem
 	}
 	pc[0].RegisterResultChannel(channel)
 	return nil
@@ -308,8 +304,7 @@ func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan 
 
 	pc, ok := cm.problemContainers[problemID]
 	if !ok {
-		log.Error().Caller().Msgf("unknown problemID %s", problemID)
-		return errors.New("Unknown problemID")
+		return ErrUnknownProblem
 	}
 	pc[0].DeRegisterResultChannel(channel)
 	close(channel)

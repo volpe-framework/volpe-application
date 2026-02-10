@@ -11,8 +11,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/mackerelio/go-osstat/memory"
 )
 
 
