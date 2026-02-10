@@ -1,3 +1,4 @@
+// Package container_mgr provides Podman container management
 package container_mgr
 
 import (
@@ -15,6 +16,7 @@ import (
 	"github.com/containers/podman/v5/pkg/specgen"
 )
 
+// crates podman connection
 func NewPodmanConnection() (context.Context, error) {
 	uid := os.Getuid()
 	containerHost, ok := os.LookupEnv("CONTAINER_HOST")
@@ -26,6 +28,7 @@ func NewPodmanConnection() (context.Context, error) {
 	return conn, err
 }
 
+// loads image and runs as new podman container and returns host port
 func runImage(imagePath string, containerName string, containerPort uint16) (uint16, error) {
 	conn, err := NewPodmanConnection()
 	if err != nil {
@@ -74,8 +77,8 @@ func runImage(imagePath string, containerName string, containerPort uint16) (uin
 		return 0, err
 	}
 
-	//outFile, _ := os.Create(containerName + "_logs")
-	//errFile, _ := os.Create(containerName + "_err")
+	// outFile, _ := os.Create(containerName + "_logs")
+	// errFile, _ := os.Create(containerName + "_err")
 	go func() {
 		err := containers.Attach(conn, cr.ID, nil, os.Stdout, os.Stderr, nil, nil)
 		if err != nil {
@@ -89,6 +92,7 @@ func runImage(imagePath string, containerName string, containerPort uint16) (uin
 	return uint16(hostPort), nil
 }
 
+// stops a running podman container
 func stopContainer(containerName string) {
 	conn, err := NewPodmanConnection()
 	if err != nil {
@@ -96,3 +100,4 @@ func stopContainer(containerName string) {
 	}
 	_ = containers.Stop(conn, containerName, nil)
 }
+

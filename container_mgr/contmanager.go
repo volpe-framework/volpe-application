@@ -1,46 +1,53 @@
+// contai// container manager and functions
 package container_mgr
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"sync"
+	"time"
+
 	"volpe-framework/comms/common"
 	ccoms "volpe-framework/comms/container"
 	"volpe-framework/comms/volpe"
 
-	otelmetric "go.opentelemetry.io/otel/metric"
-	"time"
 	"github.com/rs/zerolog/log"
+	otelmetric "go.opentelemetry.io/otel/metric"
 
 	"go.opentelemetry.io/otel"
 )
 
 var ErrUnknownProblem error = errors.New("This problem has no containers")
 
-// Manages an entire set of containers
+// Manages an entire set of problem containers
 // TODO: testing for this module
-
 type ContainerManager struct {
-	problemContainers 	map[string][]*ProblemContainer // map from problemID to list of containers
-	images 				map[string]string				// map from problemID to image path
-	pcMut             	sync.Mutex
-	containers        	map[string]string				// map from containerID to problemID
-	meter             	otelmetric.Meter
-	worker 				bool
+	problemContainers map[string][]*ProblemContainer // map from problemID to list of containers
+	images            map[string]string              // map from problemID to image path
+	pcMut             sync.Mutex
+	containers        map[string]string // map from containerID to problemID
+	problemStarts     map[string]float64
+	meter             otelmetric.Meter
+	worker            bool
 }
 
+// constructor for a new container manager
 func NewContainerManager(worker bool) *ContainerManager {
 	cm := new(ContainerManager)
 	cm.meter = otel.Meter("volpe-framework")
 	cm.problemContainers = make(map[string][]*ProblemContainer)
+	cm.problemStarts = make(map[string]float64)
 	cm.containers = make(map[string]string)
 	cm.images = make(map[string]string)
 	cm.worker = worker
 	return cm
 }
 
+// checks if container manager has a specific problem
 func (cm *ContainerManager) HasProblem(problemID string) bool {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
@@ -57,7 +64,8 @@ func (cm *ContainerManager) GetProblemIDFromContainerName(containerName string) 
 	return val, ok
 }
 
-func (cm *ContainerManager) AddProblem(problemID string, imagePath string) error {
+// starts problem container and adds problem to problemContainers
+func (cm *ContainerManager) AddProblem(problemID string, imagePath string, instances int) error {
 	// Only registers a problem, does not create instances
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
@@ -66,27 +74,27 @@ func (cm *ContainerManager) AddProblem(problemID string, imagePath string) error
 	cm.images[problemID] = imagePath
 	if ok {
 		log.Warn().Caller().Msgf("Retried creating PC for pID %s, ignoring", problemID)
-		// TODO: if supporting updating container, must change cm.containers here
+		// WARN: if supporting updating container, must change cm.containers here
 		return errors.New("problemID already has container")
 	}
 
-	instSlice := make([]*ProblemContainer, 0)
+	instSlice := make([]*ProblemContainer, instances)
 
-	// for inst := 0; inst < instances; inst++ {
-	// 	pc, err := NewProblemContainer(problemID, imagePath, cm.worker)
-	// 	if err != nil {
-	// 		log.Error().Caller().Msgf("error starting pID %s with image %s: %s", problemID, imagePath, err.Error())
-	// 		return err
-	// 	}
-	// 	cm.containers[pc.containerName] = problemID
-	// 	instSlice[inst] = pc;
-	// }
-
+	for inst := 0; inst < instances; inst++ {
+		pc, err := NewProblemContainer(problemID, imagePath, cm.worker)
+		if err != nil {
+			log.Error().Caller().Msgf("error starting pID %s with image %s: %s", problemID, imagePath, err.Error())
+			return err
+		}
+		cm.containers[pc.containerName] = problemID
+		instSlice[inst] = pc
+	}
 
 	cm.problemContainers[problemID] = instSlice
 	return nil
 }
 
+// remove problem container and removes from problemContainers
 func (cm *ContainerManager) RemoveProblem(problemID string) error {
 	// Stops all containers and removes the problem itself
 	cm.pcMut.Lock()
@@ -124,34 +132,34 @@ func (cm *ContainerManager) GetSubpopulations(perContainer int) ([]*common.Popul
 
 			members := tmp.GetMembers()
 
-			// TODO: allow configuration for this additional logging
-			// if cm.worker {
-			// 	bestFitness := members[0].GetFitness()
-			// 	bestIndex := 0
-			// 	for i, memb := range members[1:] {
-			// 		fit := memb.GetFitness()
-			// 		if fit < bestFitness {
-			// 			bestFitness = fit
-			// 			bestIndex = i
-			// 		}
-			// 	}
-			// 	fname := cont.containerName+".csv"
-			// 	f, err := os.OpenFile(fname, os.O_APPEND | os.O_CREATE | os.O_WRONLY, 0644)
-			// 	if err != nil {
-			// 		log.Err(err).Msgf("failed while creating/opening file %s to log best", fname)
-			// 	} else {
-			// 		dataString := fmt.Sprintf("%f,%s\n", bestFitness, base64.RawStdEncoding.EncodeToString(members[bestIndex].GetGenotype()))
-			// 		log.Debug().Msgf("Container subpop: %s", dataString)
-			// 		_, err := f.WriteString(dataString)
-			// 		if err != nil {
-			// 			log.Err(err).Msgf("failed to write container pop log")
-			// 		}
-			// 		f.Close()
-			// 	}
-			// }
+			// TODO: ditch this additional logging
+			if cm.worker {
+				bestFitness := members[0].GetFitness()
+				bestIndex := 0
+				for i, memb := range members[1:] {
+					fit := memb.GetFitness()
+					if fit < bestFitness {
+						bestFitness = fit
+						bestIndex = i
+					}
+				}
+				fname := cont.containerName + ".csv"
+				f, err := os.OpenFile(fname, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+				if err != nil {
+					log.Err(err).Msgf("failed while creating/opening file %s to log best", fname)
+				} else {
+					dataString := fmt.Sprintf("%f,%s\n", bestFitness, base64.RawStdEncoding.EncodeToString(members[bestIndex].GetGenotype()))
+					log.Debug().Msgf("Container subpop: %s", dataString)
+					_, err := f.WriteString(dataString)
+					if err != nil {
+						log.Err(err).Msgf("failed to write container pop log")
+					}
+					f.Close()
+				}
+			}
 
 			population.Members = slices.Grow(population.Members, len(members))
-			for _, memb := range(members) {
+			for _, memb := range members {
 				population.Members = append(population.Members, memb)
 			}
 		}
@@ -173,14 +181,14 @@ func (cm *ContainerManager) GetRandomSubpopulation(problemID string, perContaine
 	population := new(common.Population)
 	population.ProblemID = &problemID
 
-	for _, container := range(containers) {
+	for _, container := range containers {
 		subpop, err := container.GetRandomSubpopulation(perContainer)
 		if err != nil {
 			return nil, err
 		}
 		members := subpop.GetMembers()
 		population.Members = slices.Grow(population.Members, len(members))
-		for _, memb := range(members) {
+		for _, memb := range members {
 			population.Members = append(population.Members, memb)
 		}
 	}
@@ -193,14 +201,14 @@ func (cm *ContainerManager) IncorporatePopulation(pop *common.Population) error 
 
 	containers, ok := cm.problemContainers[pop.GetProblemID()]
 	if !ok {
-		return ErrUnknownProblem 
+		return ErrUnknownProblem
 	}
 
-	perContainer := len(pop.Members)/len(containers)
-	for i, cont := range(containers) {
+	perContainer := len(pop.Members) / len(containers)
+	for i, cont := range containers {
 		newpop := common.Population{
-			ProblemID: pop.ProblemID, 
-			Members: pop.Members[i*perContainer:(i+1)*perContainer],
+			ProblemID: pop.ProblemID,
+			Members:   pop.Members[i*perContainer : (i+1)*perContainer],
 		}
 		reply, err := cont.commsClient.InitFromSeedPopulation(context.Background(), &newpop)
 		if err != nil {
@@ -223,7 +231,6 @@ func (cm *ContainerManager) adjustInstances(containers []*ProblemContainer, prob
 		for i := len(containers); i < instances; i++ {
 			pc, err := NewProblemContainer(problemID, cm.images[problemID], cm.worker)
 			if err != nil {
-				// log.Error().Caller().Msgf("error starting pID %s with image %s: %s", problemID, cm.images[problemID], err.Error())
 				return nil, err
 			}
 			cm.containers[pc.containerName] = problemID
@@ -232,27 +239,27 @@ func (cm *ContainerManager) adjustInstances(containers []*ProblemContainer, prob
 		cm.problemContainers[problemID] = containers
 	} else if len(containers) > instances {
 		log.Info().Msgf("Decreasing instance count for problem %s to %d", problemID, instances)
-		for i := instances; i < len(containers);  i++ {
+		for i := instances; i < len(containers); i++ {
 			containers[i].StopContainer()
 		}
 		cm.problemContainers[problemID] = containers[:instances]
 		containers = containers[:instances]
 	}
-	perContainer := len(seedPop)/len(containers)
+	perContainer := len(seedPop) / len(containers)
 	log.Debug().Msgf("Problem: %s Instances: %d SeedPop: %d", problemID, instances, len(seedPop))
-	for i, cont := range(containers) {
+	for i, cont := range containers {
 		newPop := common.Population{
 			ProblemID: &problemID,
-			Members: seedPop[i*perContainer:(i+1)*perContainer],
+			Members:   seedPop[i*perContainer : (i+1)*perContainer],
 		}
 		n_failures := 0
 		for n_failures <= 5 {
 			_, err := cont.commsClient.InitFromSeedPopulation(context.Background(), &newPop)
 			if err == nil {
-				break 
+				break
 			} else {
 				log.Warn().Msgf("error initializing container popln %s: %s", problemID, err.Error())
-				time.Sleep(5*time.Second)
+				time.Sleep(5 * time.Second)
 				n_failures += 1
 			}
 		}
@@ -263,6 +270,7 @@ func (cm *ContainerManager) adjustInstances(containers []*ProblemContainer, prob
 	return containers, nil
 }
 
+// adjusts number of running conatiners for a problem based on event
 func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMessage) error {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
@@ -271,10 +279,12 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 	problemID := event.GetProblemID()
 
 	if instances == 0 {
-		cm.RemoveProblem(problemID)
+		return cm.RemoveProblem(problemID)
 	} else {
 		containers, ok := cm.problemContainers[problemID]
 		if !ok {
+			log.Error().Caller().Msgf("Received msg for problem ID %s, but problem container does not exist, creation not handled yet", event.GetProblemID())
+			// TODO: add logic to create container on worker
 			return ErrUnknownProblem
 		}
 		containers, err := cm.adjustInstances(containers, problemID, instances, event.Seed.GetMembers())
@@ -286,24 +296,28 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 	return nil
 }
 
+// INFO registers result channel TRUE
 func (cm *ContainerManager) RegisterResultListener(problemID string, channel chan *ccoms.ResultPopulation) error {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
 
 	pc, ok := cm.problemContainers[problemID]
 	if !ok {
+		log.Error().Caller().Msgf("unknown problemID %s", problemID)
 		return ErrUnknownProblem
 	}
 	pc[0].RegisterResultChannel(channel)
 	return nil
 }
 
+// deregisters resutl channel to FALSE
 func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan *ccoms.ResultPopulation) error {
 	cm.pcMut.Lock()
 	defer cm.pcMut.Unlock()
 
 	pc, ok := cm.problemContainers[problemID]
 	if !ok {
+		log.Error().Caller().Msgf("unknown problemID %s", problemID)
 		return ErrUnknownProblem
 	}
 	pc[0].DeRegisterResultChannel(channel)
