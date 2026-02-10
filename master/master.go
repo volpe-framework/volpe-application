@@ -49,7 +49,7 @@ func main() {
 	portD := uint16(0)
 	fmt.Sscan(port, &portD)
 
-	cman := cm.NewContainerManager(false)
+	cman := cm.NewContainerManager(false, masterContext)
 
 	metricChan := make(chan *vcomms.DeviceMetricsMessage, 10)
 	popChan := make(chan *ccomms.Population, 10)
@@ -76,7 +76,7 @@ func main() {
 
 	go sendMetric(metricChan, eventChannel, sched)
 
-	go processContainerMetrics(cman, problemStore, masterContext)
+	// go processContainerMetrics(cman, problemStore, masterContext)
 
 	go recvPopulation(cman, popChan)
 
@@ -87,15 +87,15 @@ func main() {
 	mc.Serve()
 }
 
-func processContainerMetrics(contman *cm.ContainerManager, problemStore *model.ProblemStore, masterContext context.Context) {
-	 metricChan := make(chan *cm.ContainerMetrics, 5)
-	contman.StreamContainerMetrics(metricChan, masterContext)
-	for {
-		metric := <- metricChan
-		log.Info().Msgf("Container for %s using %f GB memory", metric.ProblemID, metric.MemUsageGB)
-		// problemStore.UpdateMemory(problemID, metric.MemUsageGB)
-	}
-}
+// func processContainerMetrics(contman *cm.ContainerManager, problemStore *model.ProblemStore, masterContext context.Context) {
+// 	metricChan := make(chan *cm.ContainerMetrics, 5)
+// 	contman.StreamContainerMetrics(metricChan, masterContext)
+// 	for {
+// 		metric := <- metricChan
+// 		log.Info().Msgf("Container for %s using %f GB memory", metric.ProblemID, metric.MemUsageGB)
+// 		// problemStore.UpdateMemory(problemID, metric.MemUsageGB)
+// 	}
+// }
 
 func recvPopulation(cman *cm.ContainerManager, popChan chan *ccomms.Population) {
 	for {
