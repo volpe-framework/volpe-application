@@ -14,23 +14,15 @@ message WorkerID {
 }
 
 message MasterMessage {
-  // can be adjust population only
   oneof message {
-    AdjustPopulationMessage adjPop = 1;
     AdjustInstancesMessage adjInst = 2;
+    Population population = 3;
   }
 }
 
 message AdjustInstancesMessage {
   string problemID = 1;
-  Population seed = 2;
   int32 instances = 3;
-}
-
-message AdjustPopulationMessage {
-  string problemID = 1;
-  Population seed = 2;
-  int32 size = 3;
 }
 
 message WorkerHello {

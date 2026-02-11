@@ -3,6 +3,7 @@ package api
 import (
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	// "volpe-framework/comms/common"
@@ -54,7 +55,7 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 	err := req.ParseMultipartForm(32<<20)
 	if err != nil {
 		c.AbortWithStatus(400)
-		log.Err(err).Caller().Msg("")
+		log.Err(err).Caller().Send()
 	}
 
 	imageHeaders, ok := req.MultipartForm.File["image"]
@@ -73,12 +74,16 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 		ProblemID string `json:"problemID"`
 		Memory float32 `json:"memory"`
 		TargetInstances int32 `json:"targetInstances"`
+		MigrationFrequency int32 `json:"migrationFrequency"`
+		MigrationSize int32 `json:"migrationSize"`
 	}
 
 	metaData := imageMetaData{}
-	err = json.Unmarshal([]byte(metaDataStrings[0]), &metaData)
+	decoder := json.NewDecoder(strings.NewReader(metaDataStrings[0]))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(&metaData)
 	if err != nil {
-		log.Error().Caller().Msg(err.Error())
+		log.Err(err).Caller().Msg("failed while creating problem")
 		c.AbortWithStatusJSON(400, Response{Success: false, Message: "error parsing metadata"})
 		return
 	}
@@ -109,6 +114,8 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 		ProblemID: problemID,
 		MemoryUsage: metaData.Memory,
 		IslandCount: metaData.TargetInstances,
+		MigrationFrequency: metaData.MigrationFrequency,
+		MigrationSize: metaData.MigrationSize,
 	})
 	va.probstore.RegisterImage(problemID, fname)
 

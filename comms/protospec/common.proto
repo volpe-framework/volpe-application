@@ -22,6 +22,8 @@ message ImageStreamObject {
 message ImageDetails {
   string problemID = 1;
   int32 imageSizeBytes = 2;
+  int32 migrationFrequency = 3;
+  int32 migrationSize = 4;
 }
 
 message ImageChunk {

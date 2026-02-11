@@ -208,11 +208,13 @@ func (*ImageStreamObject_Details) isImageStreamObject_Data() {}
 func (*ImageStreamObject_Chunk) isImageStreamObject_Data() {}
 
 type ImageDetails struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ProblemID      string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
-	ImageSizeBytes int32                  `protobuf:"varint,2,opt,name=imageSizeBytes,proto3" json:"imageSizeBytes,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	ProblemID          string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
+	ImageSizeBytes     int32                  `protobuf:"varint,2,opt,name=imageSizeBytes,proto3" json:"imageSizeBytes,omitempty"`
+	MigrationFrequency int32                  `protobuf:"varint,3,opt,name=migrationFrequency,proto3" json:"migrationFrequency,omitempty"`
+	MigrationSize      int32                  `protobuf:"varint,4,opt,name=migrationSize,proto3" json:"migrationSize,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *ImageDetails) Reset() {
@@ -255,6 +257,20 @@ func (x *ImageDetails) GetProblemID() string {
 func (x *ImageDetails) GetImageSizeBytes() int32 {
 	if x != nil {
 		return x.ImageSizeBytes
+	}
+	return 0
+}
+
+func (x *ImageDetails) GetMigrationFrequency() int32 {
+	if x != nil {
+		return x.MigrationFrequency
+	}
+	return 0
+}
+
+func (x *ImageDetails) GetMigrationSize() int32 {
+	if x != nil {
+		return x.MigrationSize
 	}
 	return 0
 }
@@ -321,10 +337,12 @@ const file_common_proto_rawDesc = "" +
 	"\x11ImageStreamObject\x12)\n" +
 	"\adetails\x18\x01 \x01(\v2\r.ImageDetailsH\x00R\adetails\x12#\n" +
 	"\x05chunk\x18\x02 \x01(\v2\v.ImageChunkH\x00R\x05chunkB\x06\n" +
-	"\x04data\"T\n" +
+	"\x04data\"\xaa\x01\n" +
 	"\fImageDetails\x12\x1c\n" +
 	"\tproblemID\x18\x01 \x01(\tR\tproblemID\x12&\n" +
-	"\x0eimageSizeBytes\x18\x02 \x01(\x05R\x0eimageSizeBytes\" \n" +
+	"\x0eimageSizeBytes\x18\x02 \x01(\x05R\x0eimageSizeBytes\x12.\n" +
+	"\x12migrationFrequency\x18\x03 \x01(\x05R\x12migrationFrequency\x12$\n" +
+	"\rmigrationSize\x18\x04 \x01(\x05R\rmigrationSize\" \n" +
 	"\n" +
 	"ImageChunk\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04dataB\x1eZ\x1cvolpe-framework/comms/commonb\x06proto3"
