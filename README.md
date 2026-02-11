@@ -1,13 +1,31 @@
-# VolPE
+# VolPE  
 _Volunteer Computing Platform for Evolutionary Algorithms_
 
 This repository houses the primary components of VolPE, i.e. the master and the worker applications.
 
 ## Dependencies
-1. Install `podman` and the Go toolchain
-2. Setup podman appropriately
-3. Download this repository
-4. Export the environment variable `CONTAINER_HOST`. Value can be determined by running `podman info -f json | jq .host.remoteSocket.path`. The output from the command must be modified as follows.If the output is `"/run/user/1000/podman/podman.sock"`, the following command must be used to export the env. var.
+1. Install the required system packages:
+
+   **Ubuntu**
+   - `git`
+   - `libgpgme-dev`
+   - `podman`
+   - `libbtrfs-dev`
+
+   **MacOS**
+   - `git`
+   - `gpgme`
+   - `podman`
+   - `btrfs-progs`
+
+   **Windows**
+   - `git`
+   - `podman` 
+   - `go`
+   - `uv`
+2. Install the Go toolchain  
+3. Setup podman appropriately  
+4. Download this repository  4. Export the environment variable `CONTAINER_HOST`. Value can be determined by running `podman info -f json | jq .host.remoteSocket.path`. The output from the command must be modified as follows.If the output is `"/run/user/1000/podman/podman.sock"`, the following command must be used to export the env. var.
 ```
 export CONTAINER_HOST=unix:///xyz.sock
 ```
