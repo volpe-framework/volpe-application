@@ -24,15 +24,15 @@ type ProblemContainer struct {
 	problemID     string
 	containerName string
 	//	containerPort uint16
-	hostPort       uint16
-	commsClient    ccomms.VolpeContainerClient
-	resultChannels map[chan *ccomms.ResultPopulation]bool
-	wEmigChan chan *volpe.MigrationMessage
-	rcMut sync.Mutex
+	hostPort         uint16
+	commsClient      ccomms.VolpeContainerClient
+	resultChannels   map[chan *ccomms.ResultPopulation]bool
+	wEmigChan        chan *volpe.MigrationMessage
+	rcMut            sync.Mutex
 	containerContext context.Context
-	cancel context.CancelFunc
-	meta *types.Problem
-	containerID int32
+	cancel           context.CancelFunc
+	meta             *types.Problem
+	containerID      int32
 }
 
 // generates random name for every container
@@ -161,7 +161,7 @@ func (pc *ProblemContainer) sendResultOnce() {
 // continuosly sends results while containerContext is valid
 func (pc *ProblemContainer) sendResults() {
 	for {
-		time.Sleep(5*time.Second)
+		time.Sleep(5 * time.Second)
 		if pc.containerContext.Err() != nil {
 			log.Err(pc.containerContext.Err()).Msgf("Stopping sendResults for problem %s", pc.problemID)
 			break
@@ -194,7 +194,7 @@ func (pc *ProblemContainer) runGenerations() {
 		popln.ProblemID = &pc.meta.ProblemID
 		mig := volpe.MigrationMessage{
 			Population: popln,
-			WorkerID: "",
+			WorkerID:   "",
 			// TODO: set proper containerID
 			ContainerID: pc.containerID,
 		}
@@ -226,4 +226,3 @@ func (pc *ProblemContainer) stopContainer() {
 		return
 	}
 }
-

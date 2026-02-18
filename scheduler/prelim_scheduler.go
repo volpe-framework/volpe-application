@@ -3,6 +3,7 @@ package scheduler
 import (
 	"slices"
 	"sync"
+
 	vcomms "volpe-framework/comms/volpe"
 	"volpe-framework/types"
 
@@ -10,6 +11,7 @@ import (
 	//"github.com/rs/zerolog/log"
 )
 
+// INFO
 type PrelimScheduler struct {
 	problems       []types.Problem
 	workers        map[string]*Worker
@@ -28,6 +30,7 @@ func NewPrelimScheduler() (*PrelimScheduler, error) {
 
 func (ss *PrelimScheduler) Init() error { return nil }
 
+// AddWorker checks and adds worker to PrelimScheduler
 func (ss *PrelimScheduler) AddWorker(worker types.Worker) {
 	ss.mut.Lock()
 	defer ss.mut.Unlock()
@@ -44,7 +47,7 @@ func (ss *PrelimScheduler) AddWorker(worker types.Worker) {
 
 func (ss *PrelimScheduler) UpdateMetrics(metrics *vcomms.DeviceMetricsMessage) {
 	// TODO: apply metrics update
-	//log.Warn().Caller().Msgf("skipping metrics update for static scheduler")
+	// log.Warn().Caller().Msgf("skipping metrics update for static scheduler")
 	ss.mut.Lock()
 	worker := ss.workers[metrics.WorkerID]
 	ss.mut.Unlock()
@@ -53,6 +56,7 @@ func (ss *PrelimScheduler) UpdateMetrics(metrics *vcomms.DeviceMetricsMessage) {
 	worker.CpuUtilPerc = metrics.CpuUtilPerc
 }
 
+// RemoveWorker checks and removes worker from PrelimScheduler
 func (ss *PrelimScheduler) RemoveWorker(worker string) {
 	ss.mut.Lock()
 	defer ss.mut.Unlock()
@@ -60,6 +64,7 @@ func (ss *PrelimScheduler) RemoveWorker(worker string) {
 	delete(ss.workers, worker)
 }
 
+// INFO: FillSchedule fills schedule by assigning problems to workers based on CpuCount
 func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 	sched.Reset()
 

@@ -8,9 +8,9 @@ import (
 	"net"
 	"os"
 	"sync"
+
 	"volpe-framework/comms/common"
 	"volpe-framework/types"
-
 
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -18,6 +18,7 @@ import (
 
 // TODO: handle stream closing
 
+// MasterComms is wrapper holding grpc server and listener
 type MasterComms struct {
 	mcs masterCommsServer
 	sr  *grpc.Server
@@ -28,22 +29,24 @@ type ProblemStore interface {
 	GetMetadata(problemID string, meta *types.Problem) *types.Problem
 }
 
+// masterCommsServer implements grpc services
 type masterCommsServer struct {
 	UnimplementedVolpeMasterServer
-	chans_mut  sync.RWMutex
-	channs     map[string]chan *MasterMessage
-	metricChan chan *DeviceMetricsMessage
-	immigChan    chan *MigrationMessage
-	sched SchedulerComms
-	probStore  ProblemStore
+	chans_mut   sync.RWMutex
+	channs      map[string]chan *MasterMessage
+	metricChan  chan *DeviceMetricsMessage
+	immigChan   chan *MigrationMessage
+	sched       SchedulerComms
+	probStore   ProblemStore
 	eventStream chan string
 }
 
 type SchedulerComms interface {
-	AddWorker(worker types.Worker);
-	RemoveWorker(workerID string);
+	AddWorker(worker types.Worker)
+	RemoveWorker(workerID string)
 }
 
+// mcsStreamHandlerThread handles the core bidirectional loop
 func mcsStreamHandlerThread(
 	workerID string,
 	stream grpc.BidiStreamingServer[WorkerMessage, MasterMessage],
@@ -52,7 +55,6 @@ func mcsStreamHandlerThread(
 	immigChan chan *MigrationMessage,
 	eventStream chan string,
 ) {
-
 	log.Info().Caller().Msgf("workerID %s connected", workerID)
 
 	masterRecvChan := make(chan *WorkerMessage)
@@ -102,7 +104,7 @@ func mcsStreamHandlerThread(
 
 				sumFitness := 0.0
 				popSize := 0
-				for _, ind := range(pop.GetMembers()) {
+				for _, ind := range pop.GetMembers() {
 					sumFitness += float64(ind.GetFitness())
 					popSize += 1
 				}
@@ -126,7 +128,7 @@ func mcsStreamHandlerThread(
 				log.Info().Caller().Msgf("send chan to workerID %s closed, exiting", workerID)
 				return
 			}
-			adjInst :=  result.GetAdjInst()
+			adjInst := result.GetAdjInst()
 			emigMsg := result.GetMigration()
 			if adjInst != nil {
 				// jsonMsg, _ := json.Marshal(map[string]any{
@@ -139,7 +141,7 @@ func mcsStreamHandlerThread(
 			} else if emigMsg != nil {
 				fitnessSum := float32(0.0)
 				indCount := 0
-				for _, ind := range(emigMsg.GetPopulation().GetMembers()) {
+				for _, ind := range emigMsg.GetPopulation().GetMembers() {
 					fitnessSum += float32(ind.GetFitness())
 					indCount += 1
 				}
@@ -156,7 +158,6 @@ func mcsStreamHandlerThread(
 				log.Error().Msgf("message sent from master was neither adjust instances nor send popln. ")
 			}
 
-
 			err := stream.Send(result)
 			log.Debug().Caller().Msgf("sent master msg to workerID %s", workerID)
 			if err != nil {
@@ -168,6 +169,7 @@ func mcsStreamHandlerThread(
 	}
 }
 
+// initMasterCommsServer initializes master server state and communication channels
 func initMasterCommsServer(mcs *masterCommsServer, metricChan chan *DeviceMetricsMessage, eventStream chan string) (err error) {
 	mcs.channs = make(map[string]chan *MasterMessage)
 	mcs.metricChan = metricChan
@@ -175,6 +177,7 @@ func initMasterCommsServer(mcs *masterCommsServer, metricChan chan *DeviceMetric
 	return nil
 }
 
+// StartStreams handles initial worker connection
 func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[WorkerMessage, MasterMessage]) error {
 	protoMsg, err := stream.Recv()
 	if err != nil {
@@ -190,7 +193,6 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 	log.Info().Msgf("workerID %s connected to master", workerID)
 	fmt.Println(workerID)
 
-
 	masterSendChan := make(chan *MasterMessage)
 
 	mcs.chans_mut.Lock()
@@ -198,7 +200,7 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 	mcs.chans_mut.Unlock()
 
 	mcs.sched.AddWorker(types.Worker{
-		WorkerID: workerID, 
+		WorkerID: workerID,
 		CpuCount: workerHelloMsg.GetCpuCount(),
 		MemoryGB: workerHelloMsg.GetMemoryGB(),
 	})
@@ -234,7 +236,7 @@ func (mcs *masterCommsServer) GetProblemData(req *ProblemRequest, stream grpc.Se
 	}
 
 	fname := meta.ImagePath
-	
+
 	file, err := os.Open(fname)
 	if err != nil {
 		log.Err(err).Caller().Msgf("failed to get image")
@@ -250,9 +252,9 @@ func (mcs *masterCommsServer) GetProblemData(req *ProblemRequest, stream grpc.Se
 	stream.Send(&common.ImageStreamObject{
 		Data: &common.ImageStreamObject_Details{
 			Details: &common.ProblemDetails{
-				ProblemID: problemID,
-				ImageSizeBytes: int32(fileSize),
-				MigrationSize: meta.MigrationSize,
+				ProblemID:          problemID,
+				ImageSizeBytes:     int32(fileSize),
+				MigrationSize:      meta.MigrationSize,
 				MigrationFrequency: meta.MigrationFrequency,
 			},
 		},
@@ -285,7 +287,6 @@ func NewMasterComms(port uint16, metricChan chan *DeviceMetricsMessage, immigCha
 		return nil, err
 	}
 
-	
 	sr := grpc.NewServer()
 	mc.sr = sr
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
@@ -294,7 +295,7 @@ func NewMasterComms(port uint16, metricChan chan *DeviceMetricsMessage, immigCha
 		return nil, err
 	}
 	log.Info().Caller().Msgf("master listening on port %d", port)
-	
+
 	mc.lis = lis
 	mc.mcs.sched = sched
 	mc.mcs.immigChan = immigChan

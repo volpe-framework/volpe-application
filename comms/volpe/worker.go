@@ -12,19 +12,19 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-)
 
 // TODO: handle stream closing
 
 type WorkerComms struct {
-	client   VolpeMasterClient
-	stream   grpc.BidiStreamingClient[WorkerMessage, MasterMessage]
-	cancelFunc context.CancelFunc
+	client      VolpeMasterClient
+	stream      grpc.BidiStreamingClient[WorkerMessage, MasterMessage]
+	cancelFunc  context.CancelFunc
 	cancelMutex sync.Mutex
-	workerID string
+	workerID    string
 	// TODO: include something for population
 }
 
+// NewWorkerComms constructs WorkerComms and starts a grpc stream
 func NewWorkerComms(endpoint string, workerID string, memoryLimit float32, cpuCount int32) (*WorkerComms, error) {
 	// TODO: channel or something for population adjust
 	wc := new(WorkerComms)
@@ -52,7 +52,7 @@ func NewWorkerComms(endpoint string, workerID string, memoryLimit float32, cpuCo
 		Message: &WorkerMessage_Hello{
 			Hello: &WorkerHello{
 				WorkerID: &WorkerID{Id: workerID},
-				// TODO: use system config 
+				// TODO: use system config
 				CpuCount: int32(runtime.NumCPU()),
 				MemoryGB: float32(memoryLimit),
 			},
@@ -94,6 +94,7 @@ func (wc *WorkerComms) HandleStreams(adjInstChannel chan *AdjustInstancesMessage
 	}
 }
 
+// SendDeviceMetrics sets workerID and sends metrics over stream
 func (wc *WorkerComms) SendDeviceMetrics(metrics *DeviceMetricsMessage) error {
 	metrics.WorkerID = wc.workerID
 	workerMsg := WorkerMessage{Message: &WorkerMessage_Metrics{Metrics: metrics}}
@@ -126,7 +127,6 @@ func (wc *WorkerComms) GetProblemData(problemID string, meta *types.Problem) err
 		log.Error().Caller().Msg(err.Error())
 		return err
 	}
-
 
 	detailsMsg, err := stream.Recv()
 	if err != nil {

@@ -4,6 +4,7 @@ import "strings"
 
 type Schedule map[string]int32
 
+// Get returns assigned value for problemID@workerID
 func (s Schedule) Get(workerID string, problemID string) int32 {
 	v, ok := s[problemID+"@"+workerID]
 	if ok {
@@ -13,11 +14,13 @@ func (s Schedule) Get(workerID string, problemID string) int32 {
 	}
 }
 
+// Set assigns val to problemID@workerID
 func (s Schedule) Set(workerID string, problemID string, val int32) {
 	s[problemID+"@"+workerID] = val
 }
 
-func (s Schedule) Apply(applyFunc func (workerID string, problemID string, val int32)) {
+// Apply applies given function through all iterated schedule entries
+func (s Schedule) Apply(applyFunc func(workerID string, problemID string, val int32)) {
 	for k, val := range s {
 		substrings := strings.Split(k, "@")
 		problemID := substrings[0]
@@ -26,6 +29,7 @@ func (s Schedule) Apply(applyFunc func (workerID string, problemID string, val i
 	}
 }
 
+// Reset clears all schedule entries
 func (s Schedule) Reset() {
 	for k := range s {
 		delete(s, k)
