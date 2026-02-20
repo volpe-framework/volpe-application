@@ -6,13 +6,11 @@ import (
 	"strings"
 	"time"
 
-	// "volpe-framework/comms/common"
-	"volpe-framework/comms/common"
 	ccomms "volpe-framework/comms/container"
 	"volpe-framework/comms/volpe"
 
 	contman "volpe-framework/container_mgr"
-	"volpe-framework/master/model"
+	"volpe-framework/model"
 	"volpe-framework/scheduler"
 
 	"volpe-framework/types"
@@ -83,7 +81,7 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 	decoder.DisallowUnknownFields()
 	err = decoder.Decode(&metaData)
 	if err != nil {
-		log.Err(err).Caller().Msg("failed while creating problem")
+		log.Error().Caller().Msg(err.Error())
 		c.AbortWithStatusJSON(400, Response{Success: false, Message: "error parsing metadata"})
 		return
 	}
@@ -114,8 +112,6 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 		ProblemID: problemID,
 		MemoryUsage: metaData.Memory,
 		IslandCount: metaData.TargetInstances,
-		MigrationFrequency: metaData.MigrationFrequency,
-		MigrationSize: metaData.MigrationSize,
 	})
 	va.probstore.RegisterImage(problemID, fname)
 
@@ -125,8 +121,10 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 func (va *VolpeAPI) DeleteProblem(c *gin.Context) {
 	problemID := c.Param("id")
 
+	// TODO: also remove from problem store
+
 	if va.contman.HasProblem(problemID) {
-		va.contman.RemoveProblem(problemID)
+		va.contman.UntrackProblem(problemID)
 		va.sched.RemoveProblem(problemID)
 	}
 }
@@ -138,28 +136,23 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 		return
 	}
 
-	fname := problemID + ".tar"
-	
 	var problem types.Problem
-	va.probstore.GetMetadata(problemID, &problem)
-
-	fname, ok := va.probstore.GetFileName(problemID)
-	if !ok {
+	if va.probstore.GetMetadata(problemID, &problem) == nil {
+		log.Err(contman.ErrUnknownProblem).Msgf("Unknown problem %s", problemID)
 		c.Status(404)
-		return
 	}
 
-
 	va.sched.AddProblem(problem)
-	va.contman.AddProblem(problemID, fname)
-	err := va.contman.HandleInstancesEvent(
+	err := va.contman.TrackProblem(problemID)
+	if err != nil {
+		log.Err(err).Msgf("failed to track problem %s", problemID)
+		c.Status(500)
+		return
+	}
+	err = va.contman.HandleInstancesEvent(
 		&volpe.AdjustInstancesMessage{
 			ProblemID: problemID,
 			Instances: 1,
-			Seed: &common.Population{
-				ProblemID: &problemID,
-				Members: []*common.Individual{},
-			},
 		},
 	)
 	if err != nil {
@@ -251,7 +244,7 @@ func (va *VolpeAPI) AbortProblem(c *gin.Context) {
 	va.eventStream <- string(jsonMsg)
 
 	va.sched.RemoveProblem(problemID)
-	va.contman.RemoveProblem(problemID)
+	va.contman.UntrackProblem(problemID)
 	c.Status(200)
 }
 

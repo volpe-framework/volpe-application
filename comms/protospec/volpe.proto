@@ -16,7 +16,7 @@ message WorkerID {
 message MasterMessage {
   oneof message {
     AdjustInstancesMessage adjInst = 2;
-    Population population = 3;
+    MigrationMessage migration = 4;
   }
 }
 
@@ -31,12 +31,18 @@ message WorkerHello {
   float memoryGB = 3;
 }
 
+message MigrationMessage {
+  string workerID = 1;
+  int32 containerID = 2;
+  Population population = 3;
+}
+
 message WorkerMessage {
   // can be metrics, or subpopulation
   oneof message {
     DeviceMetricsMessage metrics = 1;
-    Population population = 2;
     WorkerHello hello = 3;
+    MigrationMessage migration = 4;
   }
 }
 

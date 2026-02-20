@@ -7,7 +7,6 @@ import (
 	"os"
 	"runtime"
 	"sync"
-	"volpe-framework/comms/common"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -103,11 +102,12 @@ func (wc *WorkerComms) SendDeviceMetrics(metrics *DeviceMetricsMessage) error {
 	return err
 }
 
-func (wc *WorkerComms) SendSubPopulation(population *common.Population) error {
-	workerMsg := WorkerMessage{Message: &WorkerMessage_Population{population}}
+func (wc *WorkerComms) SendSubPopulation(migrationMsg *MigrationMessage) error {
+	migrationMsg.WorkerID = wc.workerID
+	workerMsg := WorkerMessage{Message: &WorkerMessage_Migration{migrationMsg}}
 	err := wc.stream.Send(&workerMsg)
 	if err != nil {
-		log.Error().Caller().Msgf("sending subpop: %s", err.Error())
+		log.Err(err).Caller().Msgf("sending subpop for problemID %s containerID %s", migrationMsg.GetPopulation().GetProblemID(), migrationMsg.GetContainerID())
 	}
 	return err
 }

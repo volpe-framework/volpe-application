@@ -7,6 +7,7 @@ type Problem struct {
 	StartTime float64
 	MigrationFrequency int32
 	MigrationSize int32
+	ImagePath string // optional
 }
 
 type Worker struct {

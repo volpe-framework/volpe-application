@@ -10,6 +10,7 @@ import (
 
 	vcomms "volpe-framework/comms/volpe"
 	contman "volpe-framework/container_mgr"
+	"volpe-framework/model"
 
 	loadstat "github.com/mackerelio/go-osstat/loadavg"
 	memorystat "github.com/mackerelio/go-osstat/memory"
@@ -40,6 +41,12 @@ func main() {
 
 	workerContext, cancelFunc := context.WithCancel(context.TODO())
 	defer cancelFunc()
+
+	problemStore, err := model.NewProblemStore()
+	if err != nil {
+		log.Err(err).Msgf("failed to initialize problem store")
+		return
+	}
 
 	volpeMaster := workerConfig.GeneralConfig.VolPEMaster
 
@@ -79,7 +86,7 @@ func main() {
 		log.Fatal().Caller().Msgf("could not create workercomms: %s", err.Error())
 		panic(err)
 	}
-	cm := contman.NewContainerManager(true, workerContext)
+	cm := contman.NewWorkerContainerManager(workerContext, problemStore)
 
 	go deviceMetricsExporter(workerContext, wc)
 
@@ -89,11 +96,9 @@ func main() {
 	// metricsChan := make(chan *contman.ContainerMetrics, 5)
 	// go cm.StreamContainerMetrics(metricsChan, workerContext)
 
-	go populationExtractor(cm, wc)
-
 	adjInstChan := make(chan *vcomms.AdjustInstancesMessage, 10)
 
-	go adjInstHandler(wc, adjInstChan, cm)
+	go adjInstHandler(wc, adjInstChan, cm, problemStore)
 	
 	wc.HandleStreams(adjInstChan)
 
@@ -152,29 +157,29 @@ func deviceMetricsExporter(ctx context.Context, wc *vcomms.WorkerComms) {
 	log.Info().Msgf("Stopping device metrics export")
 }
 
-func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {
-	// extracts popln every X seconds and sends to master
-	for {
-		// TODO: make this a parameter
-		pops, err := cm.GetSubpopulations(10)
-		if err == nil {
-			for _, pop := range pops {
-				err = wc.SendSubPopulation(pop)
-				if err != nil {
-					log.Error().Caller().Msgf("couldn't send subpop %s: %s",
-						pop.GetProblemID(),
-						err.Error(),
-					)
-					continue
-				}
-				log.Info().Caller().Msgf("sent popln for %s", pop.GetProblemID())
-			}
-		}
-		time.Sleep(5 * time.Second)
-	}
-}
+// func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {
+// 	// extracts popln every X seconds and sends to master
+// 	for {
+// 		// TODO: make this a parameter
+// 		pops, err := cm.GetSubpopulations(10)
+// 		if err == nil {
+// 			for _, pop := range pops {
+// 				err = wc.SendSubPopulation(pop)
+// 				if err != nil {
+// 					log.Error().Caller().Msgf("couldn't send subpop %s: %s",
+// 						pop.GetProblemID(),
+// 						err.Error(),
+// 					)
+// 					continue
+// 				}
+// 				log.Info().Caller().Msgf("sent popln for %s", pop.GetProblemID())
+// 			}
+// 		}
+// 		time.Sleep(5 * time.Second)
+// 	}
+// }
 
-func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInstancesMessage, cm *contman.ContainerManager) {
+func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInstancesMessage, cm *contman.ContainerManager, probStore *model.ProblemStore) {
 	for {
 		adjInst, ok := <- adjInstChan
 		if !ok {
@@ -182,14 +187,24 @@ func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInsta
 			return
 		}
 		problemID := adjInst.GetProblemID()
-		
-		if !cm.HasProblem(problemID) {
+
+		_, ok = probStore.GetFileName(problemID)
+		if !ok {
 			fname, err := wc.GetImageFile(problemID)
 			if err != nil {
 				log.Error().Caller().Msgf("error fetching problemID %s: %s", problemID, err.Error())
 				continue
 			}
-			err = cm.AddProblem(problemID, fname)
+			err = probStore.RegisterImage(problemID, fname)
+			if err != nil {
+				log.Err(err).Msgf("error registering image for problemID %s", problemID)
+				continue
+			}
+			log.Debug().Msgf("retrieved image for problemiD %s", problemID)
+		}
+
+		if !cm.HasProblem(problemID) {
+			err := cm.TrackProblem(problemID)
 			if err != nil {
 				log.Error().Caller().Msgf("error adding problem %s: %s", problemID, err.Error())
 				continue

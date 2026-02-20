@@ -3,6 +3,7 @@ package container_mgr
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"sync"
@@ -10,7 +11,8 @@ import (
 
 	comms "volpe-framework/comms/common"
 	ccomms "volpe-framework/comms/container"
-	vcomms "volpe-framework/comms/volpe"
+	"volpe-framework/comms/volpe"
+	"volpe-framework/types"
 
 	"github.com/containers/podman/v5/pkg/bindings/containers"
 	"github.com/rs/zerolog/log"
@@ -25,9 +27,11 @@ type ProblemContainer struct {
 	hostPort       uint16
 	commsClient    ccomms.VolpeContainerClient
 	resultChannels map[chan *ccomms.ResultPopulation]bool
+	wEmigChan chan *volpe.MigrationMessage
 	rcMut sync.Mutex
 	containerContext context.Context
 	cancel context.CancelFunc
+	meta *types.Problem
 }
 
 // generates random name for every container
@@ -38,13 +42,19 @@ func genContainerName(problemID string) string {
 const DEFAULT_CONTAINER_PORT uint16 = 8081
 
 // starts problem container, connects it via grpc, and creates context
-func NewProblemContainer(problemID string, imagePath string, worker bool, problemContext context.Context) (*ProblemContainer, error) {
+func NewProblemContainer(problemID string, meta *types.Problem, worker bool, problemContext context.Context, wEmigChan chan *volpe.MigrationMessage) (*ProblemContainer, error) {
 	pc := new(ProblemContainer)
 	pc.problemID = problemID
 	pc.containerName = genContainerName(problemID)
 	pc.resultChannels = make(map[chan *ccomms.ResultPopulation]bool)
+	pc.meta = meta
+	pc.wEmigChan = wEmigChan
 
-	hostPort, err := runImage(imagePath, pc.containerName, DEFAULT_CONTAINER_PORT)
+	if worker && pc.wEmigChan == nil {
+		return nil, errors.New("wEmigChan required for problemContainer")
+	}
+
+	hostPort, err := runImage(meta.ImagePath, pc.containerName, DEFAULT_CONTAINER_PORT)
 	if err != nil {
 		log.Error().Caller().Msg(err.Error())
 		return nil, err
@@ -95,8 +105,8 @@ func (pc *ProblemContainer) DeRegisterResultChannel(channel chan *ccomms.ResultP
 }
 
 // returns random population from container
-func (pc *ProblemContainer) GetRandomSubpopulation(count int) (*comms.Population, error) {
-	pop, err := pc.commsClient.GetRandom(pc.containerContext, &ccomms.PopulationSize{Size: int32(count)})
+func (pc *ProblemContainer) GetRandomSubpopulation() (*comms.Population, error) {
+	pop, err := pc.commsClient.GetRandom(pc.containerContext, &ccomms.PopulationSize{Size: int32(pc.meta.MigrationSize)})
 	if err != nil {
 		log.Error().Caller().Msg(err.Error())
 		return nil, err
@@ -114,40 +124,6 @@ func (pc *ProblemContainer) GetSubpopulation(count int) (*comms.Population, erro
 	}
 	pop.ProblemID = &pc.problemID
 	return pop, nil
-}
-
-// handles population updation events
-func (pc *ProblemContainer) HandleEvents(eventChannel chan *vcomms.AdjustPopulationMessage) {
-	done := pc.containerContext.Done()
-	for {
-		select {
-		case _ = <- done:
-			err := pc.containerContext.Err()
-			if err != nil {
-				log.Err(err).Msgf("exiting handleEvents for problem %s", pc.problemID)
-				return
-			}
-		case msg, ok := <- eventChannel:
-			if !ok {
-				log.Warn().Caller().Msgf("event channel for problemID %s was closed", pc.problemID)
-				return
-			}
-			popSize := &ccomms.PopulationSize{Size: msg.GetSize()}
-			reply, err := pc.commsClient.AdjustPopulationSize(pc.containerContext, popSize)
-			if err != nil {
-				log.Error().Caller().Msg(err.Error() + ", reply: " + reply.GetMessage())
-				continue
-			}
-
-			pop := &comms.Population{Members: msg.GetSeed().GetMembers()}
-			reply, err = pc.commsClient.InitFromSeedPopulation(pc.containerContext, pop)
-			if err != nil {
-				log.Error().Caller().Msg(err.Error() + ", reply: " + reply.GetMessage())
-				continue
-			}
-
-		}
-	}
 }
 
 // fetches result once and sends to corresponding channel from resultChannels
@@ -184,14 +160,27 @@ func (pc *ProblemContainer) sendResults() {
 func (pc *ProblemContainer) runGenerations() {
 	for {
 		// TODO: configure generation run count
-		_, err := pc.commsClient.RunForGenerations(pc.containerContext, &ccomms.PopulationSize{Size: 3})
+		migrationSizeMsg := ccomms.PopulationSize{Size: pc.meta.MigrationSize}
+		_, err := pc.commsClient.RunForGenerations(pc.containerContext, &ccomms.PopulationSize{Size: pc.meta.MigrationFrequency})
 		if pc.containerContext.Err() != nil {
 			break
 		}
 		if err != nil {
 			log.Err(err).Caller().Msgf("running gen for %s failed", pc.problemID)
 			time.Sleep(5 * time.Second)
+			continue
 		}
+		popln, err := pc.commsClient.GetBestPopulation(pc.containerContext, &migrationSizeMsg)
+		if err != nil {
+			log.Err(err).Msgf("failed to get best population for %s", pc.problemID)
+			break
+		}
+		mig := volpe.MigrationMessage{
+			Population: popln,
+			WorkerID: "",
+			ContainerID: 0,
+		}
+		pc.wEmigChan <- &mig
 	}
 	log.Info().Caller().Msgf("stopping gen for %s", pc.problemID)
 }
