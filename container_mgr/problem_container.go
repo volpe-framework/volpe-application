@@ -32,6 +32,7 @@ type ProblemContainer struct {
 	containerContext context.Context
 	cancel context.CancelFunc
 	meta *types.Problem
+	containerID int32
 }
 
 // generates random name for every container
@@ -42,13 +43,14 @@ func genContainerName(problemID string) string {
 const DEFAULT_CONTAINER_PORT uint16 = 8081
 
 // starts problem container, connects it via grpc, and creates context
-func NewProblemContainer(problemID string, meta *types.Problem, worker bool, problemContext context.Context, wEmigChan chan *volpe.MigrationMessage) (*ProblemContainer, error) {
+func NewProblemContainer(problemID string, meta *types.Problem, worker bool, problemContext context.Context, wEmigChan chan *volpe.MigrationMessage, containerID int32) (*ProblemContainer, error) {
 	pc := new(ProblemContainer)
 	pc.problemID = problemID
 	pc.containerName = genContainerName(problemID)
 	pc.resultChannels = make(map[chan *ccomms.ResultPopulation]bool)
 	pc.meta = meta
 	pc.wEmigChan = wEmigChan
+	pc.containerID = containerID
 
 	if worker && pc.wEmigChan == nil {
 		return nil, errors.New("wEmigChan required for problemContainer")
@@ -186,7 +188,7 @@ func (pc *ProblemContainer) runGenerations() {
 			Population: popln,
 			WorkerID: "",
 			// TODO: set proper containerID
-			ContainerID: 0,
+			ContainerID: pc.containerID,
 		}
 		pc.wEmigChan <- &mig
 		log.Info().Msgf("Queued emigration population for problem %s", pc.meta.ProblemID)

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
-	"slices"
 	"sync"
 
 	"volpe-framework/comms/common"
@@ -41,7 +40,7 @@ type ContainerManager struct {
 
 // stores all the information related to an individual problem
 type cmProblem struct {
-	problemContainers 	[]*ProblemContainer
+	problemContainers 	map[int32]*ProblemContainer
 	problemContext 		context.Context
 	problemCancel 		context.CancelFunc
 }
@@ -125,7 +124,7 @@ func (cm *ContainerManager) TrackProblem(problemID string) error {
 
 	problem := new(cmProblem)
 	problem.problemContext, problem.problemCancel = context.WithCancel(cm.ctx)
-	problem.problemContainers = make([]*ProblemContainer, 0)
+	problem.problemContainers = make(map[int32]*ProblemContainer, 0)
 	cm.problemContainers[problemID] = problem
 
 	return nil
@@ -262,17 +261,28 @@ func (cm *ContainerManager) IncorporatePopulation(mig *volpe.MigrationMessage) e
 		containerID := mig.GetContainerID()
 		if int(containerID) >= len(problem.problemContainers) {
 			log.Warn().Msgf("containerID %d invalid for problemID %s (has %d), sending to random container", containerID, pop.GetProblemID(), len(problem.problemContainers))
-			pc := problem.problemContainers[rand.Int() % len(problem.problemContainers)]
+			id := int32(0)
+			for key := range(problem.problemContainers) {
+				id = key
+				break
+			}
+			pc := problem.problemContainers[id]
 			return cm.incPopToPC(pop, pc)
 		} else {
 			return cm.incPopToPC(pop, problem.problemContainers[containerID])
 		}
 	} else {
-		err :=  cm.incPopToPC(pop, problem.problemContainers[0])
+		id := int32(0)
+		for key := range(problem.problemContainers) {
+			id = key
+			break
+		}
+
+		err :=  cm.incPopToPC(pop, problem.problemContainers[id])
 		if err != nil {
 			return err
 		}
-		newPop, err := problem.problemContainers[0].GetRandomSubpopulation()
+		newPop, err := problem.problemContainers[id].GetRandomSubpopulation()
 		if err != nil {
 			return err
 		}
@@ -292,27 +302,32 @@ func (cm *ContainerManager) adjustInstances(problemID string, instances int) err
 	containers := problem.problemContainers
 	if len(containers) < int(instances) {
 		log.Info().Msgf("Increasing instance count for problem %s to %d", problemID, instances)
-		containers = slices.Grow(containers, instances-len(containers))
 		problemContext := problem.problemContext
 		problemMeta := types.Problem{}
 		if cm.problemStore.GetMetadata(problemID, &problemMeta) == nil {
 			return &UnknownProblemError{ProblemID: problemID}
 		}
 		for i := len(containers); i < instances; i++ {
-			pc, err := NewProblemContainer(problemID, &problemMeta, cm.worker, problemContext, cm.emigChan)
+			newID := rand.Int32() % 2048
+			pc, err := NewProblemContainer(problemID, &problemMeta, cm.worker, problemContext, cm.emigChan, newID)
 			if err != nil {
 				return err
 			}
-			containers = append(containers, pc)
+			problem.problemContainers[newID] = pc
 		}
 		problem.problemContainers = containers
 	} else if len(containers) > instances {
 		log.Info().Msgf("Decreasing instance count for problem %s to %d", problemID, instances)
-		for i := instances; i < len(containers);  i++ {
-			containers[i].Stop()
+		removedCount := 0
+		toRemove := len(containers) - instances
+		for key, pc := range(problem.problemContainers) {
+			if removedCount >= toRemove {
+				break
+			}
+			pc.Stop()
+			delete(problem.problemContainers, key)
+			removedCount += 1
 		}
-		problem.problemContainers = containers[:instances]
-		containers = containers[:instances]
 	}
 	return nil
 }
