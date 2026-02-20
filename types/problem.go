@@ -5,6 +5,9 @@ type Problem struct {
 	MemoryUsage float32
 	IslandCount int32
 	StartTime float64
+	MigrationFrequency int32
+	MigrationSize int32
+	ImagePath string // optional
 }
 
 type Worker struct {

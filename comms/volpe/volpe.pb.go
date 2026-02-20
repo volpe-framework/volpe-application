@@ -68,12 +68,10 @@ func (x *WorkerID) GetId() string {
 
 type MasterMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// can be adjust population only
-	//
 	// Types that are valid to be assigned to Message:
 	//
-	//	*MasterMessage_AdjPop
 	//	*MasterMessage_AdjInst
+	//	*MasterMessage_Migration
 	Message       isMasterMessage_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -116,15 +114,6 @@ func (x *MasterMessage) GetMessage() isMasterMessage_Message {
 	return nil
 }
 
-func (x *MasterMessage) GetAdjPop() *AdjustPopulationMessage {
-	if x != nil {
-		if x, ok := x.Message.(*MasterMessage_AdjPop); ok {
-			return x.AdjPop
-		}
-	}
-	return nil
-}
-
 func (x *MasterMessage) GetAdjInst() *AdjustInstancesMessage {
 	if x != nil {
 		if x, ok := x.Message.(*MasterMessage_AdjInst); ok {
@@ -134,26 +123,34 @@ func (x *MasterMessage) GetAdjInst() *AdjustInstancesMessage {
 	return nil
 }
 
-type isMasterMessage_Message interface {
-	isMasterMessage_Message()
+func (x *MasterMessage) GetMigration() *MigrationMessage {
+	if x != nil {
+		if x, ok := x.Message.(*MasterMessage_Migration); ok {
+			return x.Migration
+		}
+	}
+	return nil
 }
 
-type MasterMessage_AdjPop struct {
-	AdjPop *AdjustPopulationMessage `protobuf:"bytes,1,opt,name=adjPop,proto3,oneof"`
+type isMasterMessage_Message interface {
+	isMasterMessage_Message()
 }
 
 type MasterMessage_AdjInst struct {
 	AdjInst *AdjustInstancesMessage `protobuf:"bytes,2,opt,name=adjInst,proto3,oneof"`
 }
 
-func (*MasterMessage_AdjPop) isMasterMessage_Message() {}
+type MasterMessage_Migration struct {
+	Migration *MigrationMessage `protobuf:"bytes,4,opt,name=migration,proto3,oneof"`
+}
 
 func (*MasterMessage_AdjInst) isMasterMessage_Message() {}
+
+func (*MasterMessage_Migration) isMasterMessage_Message() {}
 
 type AdjustInstancesMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProblemID     string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
-	Seed          *common.Population     `protobuf:"bytes,2,opt,name=seed,proto3" json:"seed,omitempty"`
 	Instances     int32                  `protobuf:"varint,3,opt,name=instances,proto3" json:"instances,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -196,76 +193,9 @@ func (x *AdjustInstancesMessage) GetProblemID() string {
 	return ""
 }
 
-func (x *AdjustInstancesMessage) GetSeed() *common.Population {
-	if x != nil {
-		return x.Seed
-	}
-	return nil
-}
-
 func (x *AdjustInstancesMessage) GetInstances() int32 {
 	if x != nil {
 		return x.Instances
-	}
-	return 0
-}
-
-type AdjustPopulationMessage struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProblemID     string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
-	Seed          *common.Population     `protobuf:"bytes,2,opt,name=seed,proto3" json:"seed,omitempty"`
-	Size          int32                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AdjustPopulationMessage) Reset() {
-	*x = AdjustPopulationMessage{}
-	mi := &file_volpe_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AdjustPopulationMessage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AdjustPopulationMessage) ProtoMessage() {}
-
-func (x *AdjustPopulationMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_volpe_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AdjustPopulationMessage.ProtoReflect.Descriptor instead.
-func (*AdjustPopulationMessage) Descriptor() ([]byte, []int) {
-	return file_volpe_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *AdjustPopulationMessage) GetProblemID() string {
-	if x != nil {
-		return x.ProblemID
-	}
-	return ""
-}
-
-func (x *AdjustPopulationMessage) GetSeed() *common.Population {
-	if x != nil {
-		return x.Seed
-	}
-	return nil
-}
-
-func (x *AdjustPopulationMessage) GetSize() int32 {
-	if x != nil {
-		return x.Size
 	}
 	return 0
 }
@@ -281,7 +211,7 @@ type WorkerHello struct {
 
 func (x *WorkerHello) Reset() {
 	*x = WorkerHello{}
-	mi := &file_volpe_proto_msgTypes[4]
+	mi := &file_volpe_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -293,7 +223,7 @@ func (x *WorkerHello) String() string {
 func (*WorkerHello) ProtoMessage() {}
 
 func (x *WorkerHello) ProtoReflect() protoreflect.Message {
-	mi := &file_volpe_proto_msgTypes[4]
+	mi := &file_volpe_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -306,7 +236,7 @@ func (x *WorkerHello) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkerHello.ProtoReflect.Descriptor instead.
 func (*WorkerHello) Descriptor() ([]byte, []int) {
-	return file_volpe_proto_rawDescGZIP(), []int{4}
+	return file_volpe_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *WorkerHello) GetWorkerID() *WorkerID {
@@ -330,6 +260,66 @@ func (x *WorkerHello) GetMemoryGB() float32 {
 	return 0
 }
 
+type MigrationMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkerID      string                 `protobuf:"bytes,1,opt,name=workerID,proto3" json:"workerID,omitempty"`
+	ContainerID   int32                  `protobuf:"varint,2,opt,name=containerID,proto3" json:"containerID,omitempty"`
+	Population    *common.Population     `protobuf:"bytes,3,opt,name=population,proto3" json:"population,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MigrationMessage) Reset() {
+	*x = MigrationMessage{}
+	mi := &file_volpe_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MigrationMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MigrationMessage) ProtoMessage() {}
+
+func (x *MigrationMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_volpe_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MigrationMessage.ProtoReflect.Descriptor instead.
+func (*MigrationMessage) Descriptor() ([]byte, []int) {
+	return file_volpe_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *MigrationMessage) GetWorkerID() string {
+	if x != nil {
+		return x.WorkerID
+	}
+	return ""
+}
+
+func (x *MigrationMessage) GetContainerID() int32 {
+	if x != nil {
+		return x.ContainerID
+	}
+	return 0
+}
+
+func (x *MigrationMessage) GetPopulation() *common.Population {
+	if x != nil {
+		return x.Population
+	}
+	return nil
+}
+
 type WorkerMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// can be metrics, or subpopulation
@@ -337,8 +327,8 @@ type WorkerMessage struct {
 	// Types that are valid to be assigned to Message:
 	//
 	//	*WorkerMessage_Metrics
-	//	*WorkerMessage_Population
 	//	*WorkerMessage_Hello
+	//	*WorkerMessage_Migration
 	Message       isWorkerMessage_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -390,19 +380,19 @@ func (x *WorkerMessage) GetMetrics() *DeviceMetricsMessage {
 	return nil
 }
 
-func (x *WorkerMessage) GetPopulation() *common.Population {
+func (x *WorkerMessage) GetHello() *WorkerHello {
 	if x != nil {
-		if x, ok := x.Message.(*WorkerMessage_Population); ok {
-			return x.Population
+		if x, ok := x.Message.(*WorkerMessage_Hello); ok {
+			return x.Hello
 		}
 	}
 	return nil
 }
 
-func (x *WorkerMessage) GetHello() *WorkerHello {
+func (x *WorkerMessage) GetMigration() *MigrationMessage {
 	if x != nil {
-		if x, ok := x.Message.(*WorkerMessage_Hello); ok {
-			return x.Hello
+		if x, ok := x.Message.(*WorkerMessage_Migration); ok {
+			return x.Migration
 		}
 	}
 	return nil
@@ -416,19 +406,19 @@ type WorkerMessage_Metrics struct {
 	Metrics *DeviceMetricsMessage `protobuf:"bytes,1,opt,name=metrics,proto3,oneof"`
 }
 
-type WorkerMessage_Population struct {
-	Population *common.Population `protobuf:"bytes,2,opt,name=population,proto3,oneof"`
-}
-
 type WorkerMessage_Hello struct {
 	Hello *WorkerHello `protobuf:"bytes,3,opt,name=hello,proto3,oneof"`
 }
 
+type WorkerMessage_Migration struct {
+	Migration *MigrationMessage `protobuf:"bytes,4,opt,name=migration,proto3,oneof"`
+}
+
 func (*WorkerMessage_Metrics) isWorkerMessage_Message() {}
 
-func (*WorkerMessage_Population) isWorkerMessage_Message() {}
-
 func (*WorkerMessage_Hello) isWorkerMessage_Message() {}
+
+func (*WorkerMessage_Migration) isWorkerMessage_Message() {}
 
 type DeviceMetricsMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -558,27 +548,27 @@ func (x *ApplicationMetrics) GetMemUsage() float32 {
 	return 0
 }
 
-type ImageRequest struct {
+type ProblemRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProblemID     string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ImageRequest) Reset() {
-	*x = ImageRequest{}
+func (x *ProblemRequest) Reset() {
+	*x = ProblemRequest{}
 	mi := &file_volpe_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ImageRequest) String() string {
+func (x *ProblemRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ImageRequest) ProtoMessage() {}
+func (*ProblemRequest) ProtoMessage() {}
 
-func (x *ImageRequest) ProtoReflect() protoreflect.Message {
+func (x *ProblemRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_volpe_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -590,12 +580,12 @@ func (x *ImageRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ImageRequest.ProtoReflect.Descriptor instead.
-func (*ImageRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ProblemRequest.ProtoReflect.Descriptor instead.
+func (*ProblemRequest) Descriptor() ([]byte, []int) {
 	return file_volpe_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *ImageRequest) GetProblemID() string {
+func (x *ProblemRequest) GetProblemID() string {
 	if x != nil {
 		return x.ProblemID
 	}
@@ -608,29 +598,28 @@ const file_volpe_proto_rawDesc = "" +
 	"\n" +
 	"\vvolpe.proto\x1a\fcommon.proto\"\x1a\n" +
 	"\bWorkerID\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x83\x01\n" +
-	"\rMasterMessage\x122\n" +
-	"\x06adjPop\x18\x01 \x01(\v2\x18.AdjustPopulationMessageH\x00R\x06adjPop\x123\n" +
-	"\aadjInst\x18\x02 \x01(\v2\x17.AdjustInstancesMessageH\x00R\aadjInstB\t\n" +
-	"\amessage\"u\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x82\x01\n" +
+	"\rMasterMessage\x123\n" +
+	"\aadjInst\x18\x02 \x01(\v2\x17.AdjustInstancesMessageH\x00R\aadjInst\x121\n" +
+	"\tmigration\x18\x04 \x01(\v2\x11.MigrationMessageH\x00R\tmigrationB\t\n" +
+	"\amessage\"T\n" +
 	"\x16AdjustInstancesMessage\x12\x1c\n" +
-	"\tproblemID\x18\x01 \x01(\tR\tproblemID\x12\x1f\n" +
-	"\x04seed\x18\x02 \x01(\v2\v.PopulationR\x04seed\x12\x1c\n" +
+	"\tproblemID\x18\x01 \x01(\tR\tproblemID\x12\x1c\n" +
 	"\tinstances\x18\x03 \x01(\x05R\tinstances\"l\n" +
-	"\x17AdjustPopulationMessage\x12\x1c\n" +
-	"\tproblemID\x18\x01 \x01(\tR\tproblemID\x12\x1f\n" +
-	"\x04seed\x18\x02 \x01(\v2\v.PopulationR\x04seed\x12\x12\n" +
-	"\x04size\x18\x03 \x01(\x05R\x04size\"l\n" +
 	"\vWorkerHello\x12%\n" +
 	"\bworkerID\x18\x01 \x01(\v2\t.WorkerIDR\bworkerID\x12\x1a\n" +
 	"\bcpuCount\x18\x02 \x01(\x05R\bcpuCount\x12\x1a\n" +
-	"\bmemoryGB\x18\x03 \x01(\x02R\bmemoryGB\"\xa2\x01\n" +
-	"\rWorkerMessage\x121\n" +
-	"\ametrics\x18\x01 \x01(\v2\x15.DeviceMetricsMessageH\x00R\ametrics\x12-\n" +
+	"\bmemoryGB\x18\x03 \x01(\x02R\bmemoryGB\"}\n" +
+	"\x10MigrationMessage\x12\x1a\n" +
+	"\bworkerID\x18\x01 \x01(\tR\bworkerID\x12 \n" +
+	"\vcontainerID\x18\x02 \x01(\x05R\vcontainerID\x12+\n" +
 	"\n" +
-	"population\x18\x02 \x01(\v2\v.PopulationH\x00R\n" +
-	"population\x12$\n" +
-	"\x05hello\x18\x03 \x01(\v2\f.WorkerHelloH\x00R\x05helloB\t\n" +
+	"population\x18\x03 \x01(\v2\v.PopulationR\n" +
+	"population\"\xa6\x01\n" +
+	"\rWorkerMessage\x121\n" +
+	"\ametrics\x18\x01 \x01(\v2\x15.DeviceMetricsMessageH\x00R\ametrics\x12$\n" +
+	"\x05hello\x18\x03 \x01(\v2\f.WorkerHelloH\x00R\x05hello\x121\n" +
+	"\tmigration\x18\x04 \x01(\v2\x11.MigrationMessageH\x00R\tmigrationB\t\n" +
 	"\amessage\"\xb4\x01\n" +
 	"\x14DeviceMetricsMessage\x12\x1a\n" +
 	"\bworkerID\x18\x01 \x01(\tR\bworkerID\x12 \n" +
@@ -646,12 +635,12 @@ const file_volpe_proto_rawDesc = "" +
 	"netRxBytes\"J\n" +
 	"\x12ApplicationMetrics\x12\x18\n" +
 	"\acpuUtil\x18\x01 \x01(\x02R\acpuUtil\x12\x1a\n" +
-	"\bmemUsage\x18\x02 \x01(\x02R\bmemUsage\",\n" +
-	"\fImageRequest\x12\x1c\n" +
-	"\tproblemID\x18\x01 \x01(\tR\tproblemID2v\n" +
+	"\bmemUsage\x18\x02 \x01(\x02R\bmemUsage\".\n" +
+	"\x0eProblemRequest\x12\x1c\n" +
+	"\tproblemID\x18\x01 \x01(\tR\tproblemID2~\n" +
 	"\vVolpeMaster\x124\n" +
-	"\fStartStreams\x12\x0e.WorkerMessage\x1a\x0e.MasterMessage\"\x00(\x010\x01\x121\n" +
-	"\bGetImage\x12\r.ImageRequest\x1a\x12.ImageStreamObject\"\x000\x01B\x0fZ\r./comms/volpeb\x06proto3"
+	"\fStartStreams\x12\x0e.WorkerMessage\x1a\x0e.MasterMessage\"\x00(\x010\x01\x129\n" +
+	"\x0eGetProblemData\x12\x0f.ProblemRequest\x1a\x12.ImageStreamObject\"\x000\x01B\x0fZ\r./comms/volpeb\x06proto3"
 
 var (
 	file_volpe_proto_rawDescOnce sync.Once
@@ -670,33 +659,32 @@ var file_volpe_proto_goTypes = []any{
 	(*WorkerID)(nil),                 // 0: WorkerID
 	(*MasterMessage)(nil),            // 1: MasterMessage
 	(*AdjustInstancesMessage)(nil),   // 2: AdjustInstancesMessage
-	(*AdjustPopulationMessage)(nil),  // 3: AdjustPopulationMessage
-	(*WorkerHello)(nil),              // 4: WorkerHello
+	(*WorkerHello)(nil),              // 3: WorkerHello
+	(*MigrationMessage)(nil),         // 4: MigrationMessage
 	(*WorkerMessage)(nil),            // 5: WorkerMessage
 	(*DeviceMetricsMessage)(nil),     // 6: DeviceMetricsMessage
 	(*ApplicationMetrics)(nil),       // 7: ApplicationMetrics
-	(*ImageRequest)(nil),             // 8: ImageRequest
+	(*ProblemRequest)(nil),           // 8: ProblemRequest
 	(*common.Population)(nil),        // 9: Population
 	(*common.ImageStreamObject)(nil), // 10: ImageStreamObject
 }
 var file_volpe_proto_depIdxs = []int32{
-	3,  // 0: MasterMessage.adjPop:type_name -> AdjustPopulationMessage
-	2,  // 1: MasterMessage.adjInst:type_name -> AdjustInstancesMessage
-	9,  // 2: AdjustInstancesMessage.seed:type_name -> Population
-	9,  // 3: AdjustPopulationMessage.seed:type_name -> Population
-	0,  // 4: WorkerHello.workerID:type_name -> WorkerID
-	6,  // 5: WorkerMessage.metrics:type_name -> DeviceMetricsMessage
-	9,  // 6: WorkerMessage.population:type_name -> Population
-	4,  // 7: WorkerMessage.hello:type_name -> WorkerHello
-	5,  // 8: VolpeMaster.StartStreams:input_type -> WorkerMessage
-	8,  // 9: VolpeMaster.GetImage:input_type -> ImageRequest
-	1,  // 10: VolpeMaster.StartStreams:output_type -> MasterMessage
-	10, // 11: VolpeMaster.GetImage:output_type -> ImageStreamObject
-	10, // [10:12] is the sub-list for method output_type
-	8,  // [8:10] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	2,  // 0: MasterMessage.adjInst:type_name -> AdjustInstancesMessage
+	4,  // 1: MasterMessage.migration:type_name -> MigrationMessage
+	0,  // 2: WorkerHello.workerID:type_name -> WorkerID
+	9,  // 3: MigrationMessage.population:type_name -> Population
+	6,  // 4: WorkerMessage.metrics:type_name -> DeviceMetricsMessage
+	3,  // 5: WorkerMessage.hello:type_name -> WorkerHello
+	4,  // 6: WorkerMessage.migration:type_name -> MigrationMessage
+	5,  // 7: VolpeMaster.StartStreams:input_type -> WorkerMessage
+	8,  // 8: VolpeMaster.GetProblemData:input_type -> ProblemRequest
+	1,  // 9: VolpeMaster.StartStreams:output_type -> MasterMessage
+	10, // 10: VolpeMaster.GetProblemData:output_type -> ImageStreamObject
+	9,  // [9:11] is the sub-list for method output_type
+	7,  // [7:9] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_volpe_proto_init() }
@@ -705,13 +693,13 @@ func file_volpe_proto_init() {
 		return
 	}
 	file_volpe_proto_msgTypes[1].OneofWrappers = []any{
-		(*MasterMessage_AdjPop)(nil),
 		(*MasterMessage_AdjInst)(nil),
+		(*MasterMessage_Migration)(nil),
 	}
 	file_volpe_proto_msgTypes[5].OneofWrappers = []any{
 		(*WorkerMessage_Metrics)(nil),
-		(*WorkerMessage_Population)(nil),
 		(*WorkerMessage_Hello)(nil),
+		(*WorkerMessage_Migration)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

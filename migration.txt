@@ -1,0 +1,10 @@
+how to enable metadata:
+
+1. modify types (done)
+2. make problem store common (done)
+3. utilise problem store in contman and problemcontainer (done)
+4. population share msgs should have worker ID and container ID
+5. make send popln work properly (in sync with generations) in problemcontainer
+6. make master and worker create emig and immig channels
+7. make channels work right
+8. ensure scheduler updates are sent periodically

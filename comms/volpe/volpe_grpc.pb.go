@@ -20,8 +20,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	VolpeMaster_StartStreams_FullMethodName = "/VolpeMaster/StartStreams"
-	VolpeMaster_GetImage_FullMethodName     = "/VolpeMaster/GetImage"
+	VolpeMaster_StartStreams_FullMethodName   = "/VolpeMaster/StartStreams"
+	VolpeMaster_GetProblemData_FullMethodName = "/VolpeMaster/GetProblemData"
 )
 
 // VolpeMasterClient is the client API for VolpeMaster service.
@@ -29,7 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type VolpeMasterClient interface {
 	StartStreams(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[WorkerMessage, MasterMessage], error)
-	GetImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[common.ImageStreamObject], error)
+	GetProblemData(ctx context.Context, in *ProblemRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[common.ImageStreamObject], error)
 }
 
 type volpeMasterClient struct {
@@ -53,13 +53,13 @@ func (c *volpeMasterClient) StartStreams(ctx context.Context, opts ...grpc.CallO
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VolpeMaster_StartStreamsClient = grpc.BidiStreamingClient[WorkerMessage, MasterMessage]
 
-func (c *volpeMasterClient) GetImage(ctx context.Context, in *ImageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[common.ImageStreamObject], error) {
+func (c *volpeMasterClient) GetProblemData(ctx context.Context, in *ProblemRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[common.ImageStreamObject], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VolpeMaster_ServiceDesc.Streams[1], VolpeMaster_GetImage_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VolpeMaster_ServiceDesc.Streams[1], VolpeMaster_GetProblemData_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[ImageRequest, common.ImageStreamObject]{ClientStream: stream}
+	x := &grpc.GenericClientStream[ProblemRequest, common.ImageStreamObject]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -70,14 +70,14 @@ func (c *volpeMasterClient) GetImage(ctx context.Context, in *ImageRequest, opts
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type VolpeMaster_GetImageClient = grpc.ServerStreamingClient[common.ImageStreamObject]
+type VolpeMaster_GetProblemDataClient = grpc.ServerStreamingClient[common.ImageStreamObject]
 
 // VolpeMasterServer is the server API for VolpeMaster service.
 // All implementations must embed UnimplementedVolpeMasterServer
 // for forward compatibility.
 type VolpeMasterServer interface {
 	StartStreams(grpc.BidiStreamingServer[WorkerMessage, MasterMessage]) error
-	GetImage(*ImageRequest, grpc.ServerStreamingServer[common.ImageStreamObject]) error
+	GetProblemData(*ProblemRequest, grpc.ServerStreamingServer[common.ImageStreamObject]) error
 	mustEmbedUnimplementedVolpeMasterServer()
 }
 
@@ -91,8 +91,8 @@ type UnimplementedVolpeMasterServer struct{}
 func (UnimplementedVolpeMasterServer) StartStreams(grpc.BidiStreamingServer[WorkerMessage, MasterMessage]) error {
 	return status.Error(codes.Unimplemented, "method StartStreams not implemented")
 }
-func (UnimplementedVolpeMasterServer) GetImage(*ImageRequest, grpc.ServerStreamingServer[common.ImageStreamObject]) error {
-	return status.Error(codes.Unimplemented, "method GetImage not implemented")
+func (UnimplementedVolpeMasterServer) GetProblemData(*ProblemRequest, grpc.ServerStreamingServer[common.ImageStreamObject]) error {
+	return status.Error(codes.Unimplemented, "method GetProblemData not implemented")
 }
 func (UnimplementedVolpeMasterServer) mustEmbedUnimplementedVolpeMasterServer() {}
 func (UnimplementedVolpeMasterServer) testEmbeddedByValue()                     {}
@@ -122,16 +122,16 @@ func _VolpeMaster_StartStreams_Handler(srv interface{}, stream grpc.ServerStream
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VolpeMaster_StartStreamsServer = grpc.BidiStreamingServer[WorkerMessage, MasterMessage]
 
-func _VolpeMaster_GetImage_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(ImageRequest)
+func _VolpeMaster_GetProblemData_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ProblemRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(VolpeMasterServer).GetImage(m, &grpc.GenericServerStream[ImageRequest, common.ImageStreamObject]{ServerStream: stream})
+	return srv.(VolpeMasterServer).GetProblemData(m, &grpc.GenericServerStream[ProblemRequest, common.ImageStreamObject]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type VolpeMaster_GetImageServer = grpc.ServerStreamingServer[common.ImageStreamObject]
+type VolpeMaster_GetProblemDataServer = grpc.ServerStreamingServer[common.ImageStreamObject]
 
 // VolpeMaster_ServiceDesc is the grpc.ServiceDesc for VolpeMaster service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -148,8 +148,8 @@ var VolpeMaster_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 		{
-			StreamName:    "GetImage",
-			Handler:       _VolpeMaster_GetImage_Handler,
+			StreamName:    "GetProblemData",
+			Handler:       _VolpeMaster_GetProblemData_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -10,24 +10,19 @@ import (
 
 type ProblemStore struct {
 	// TODO: Add persistence
-	problems map[string]*ProblemModel
+	problems map[string]*types.Problem
 	mut sync.Mutex
 }
 
-type ProblemModel struct {
-	metadata types.Problem
-	problemFile string
-}
-
 func NewProblemStore() (*ProblemStore, error) {
-	return &ProblemStore{problems: make(map[string]*ProblemModel)},  nil
+	return &ProblemStore{problems: make(map[string]*types.Problem)},  nil
 }
 
 func (ps *ProblemStore) NewProblem(p types.Problem) {
 	ps.mut.Lock()
 	defer ps.mut.Unlock()
 
-	problem := ProblemModel{ metadata: p, problemFile: "" }
+	problem := p
 	ps.problems[p.ProblemID] = &problem
 }
 
@@ -42,7 +37,7 @@ func (ps *ProblemStore) RegisterImage(id string, fname string) error {
 		log.Error().Caller().Msgf("tried registering image for nonexistent problem %s", id) 
 		return errors.New("unkown problem " + id)
 	}
-	prob.problemFile = fname
+	prob.ImagePath = fname
 	return nil
 }
 
@@ -55,7 +50,7 @@ func (ps *ProblemStore) GetMetadata(id string, p *types.Problem) *types.Problem 
 		return nil
 	}
 
-	*p = prob.metadata
+	*p = *prob
 	return p
 }
 
@@ -67,7 +62,8 @@ func (ps *ProblemStore) GetFileName(id string) (string, bool) {
 	if !ok {
 		return "", false
 	}
-	return prob.problemFile, true
+
+	return prob.ImagePath, prob.ImagePath != ""
 }
 
 func (ps *ProblemStore) UpdateMemory(id string, memGB float32) {
@@ -79,5 +75,5 @@ func (ps *ProblemStore) UpdateMemory(id string, memGB float32) {
 		log.Error().Msgf("tried to update memory for nonexistent problem %s", id)
 		return
 	}
-	prob.metadata.MemoryUsage = memGB
+	prob.MemoryUsage = memGB
 }

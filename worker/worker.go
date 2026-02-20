@@ -8,8 +8,11 @@ import (
 	"runtime"
 	"time"
 
+	"volpe-framework/comms/volpe"
 	vcomms "volpe-framework/comms/volpe"
 	contman "volpe-framework/container_mgr"
+	"volpe-framework/model"
+	"volpe-framework/types"
 
 	loadstat "github.com/mackerelio/go-osstat/loadavg"
 	memorystat "github.com/mackerelio/go-osstat/memory"
@@ -41,7 +44,15 @@ func main() {
 	workerContext, cancelFunc := context.WithCancel(context.TODO())
 	defer cancelFunc()
 
+	problemStore, err := model.NewProblemStore()
+	if err != nil {
+		log.Err(err).Msgf("failed to initialize problem store")
+		return
+	}
+
 	volpeMaster := workerConfig.GeneralConfig.VolPEMaster
+
+	immigChan := make(chan *volpe.MigrationMessage, 10)
 
 	if volpeMaster == "" {
 		log.Warn().Msgf("VolPE master not found in config, loading from env variable VOLPE_MASTER")
@@ -74,14 +85,18 @@ func main() {
 		log.Warn().Caller().Msgf("CPU count not found, using %d CPUs instead", cpuCount)
 	}
 
+	wEmigChan := make(chan *volpe.MigrationMessage, 10)
+
 	wc, err := vcomms.NewWorkerComms(volpeMaster, workerID, memoryGB, cpuCount)
 	if err != nil {
 		log.Fatal().Caller().Msgf("could not create workercomms: %s", err.Error())
 		panic(err)
 	}
-	cm := contman.NewContainerManager(true, workerContext)
+	cm := contman.NewWorkerContainerManager(workerContext, problemStore, wEmigChan)
 
 	go deviceMetricsExporter(workerContext, wc)
+
+	go emigrationHandler(wc, wEmigChan)
 
 	// go cm.RunMetricsExport(wc, workerID)
 
@@ -89,14 +104,38 @@ func main() {
 	// metricsChan := make(chan *contman.ContainerMetrics, 5)
 	// go cm.StreamContainerMetrics(metricsChan, workerContext)
 
-	go populationExtractor(cm, wc)
-
 	adjInstChan := make(chan *vcomms.AdjustInstancesMessage, 10)
 
-	go adjInstHandler(wc, adjInstChan, cm)
-	
-	wc.HandleStreams(adjInstChan)
+	go adjInstHandler(wc, adjInstChan, cm, problemStore)
 
+	go immigrationHandler(cm, immigChan)
+	
+	wc.HandleStreams(adjInstChan, immigChan)
+}
+
+func emigrationHandler(wc *vcomms.WorkerComms, wEmigChan chan *volpe.MigrationMessage) {
+	for {
+		pop, ok := <- wEmigChan
+		if !ok {
+			log.Error().Msgf("Exiting emigration handler")
+			return
+		}
+		log.Info().Msgf("Sending emigration for problemID %s from worker %s, container %d", pop.GetPopulation().GetProblemID(), pop.GetWorkerID(), pop.GetContainerID())
+		wc.SendSubPopulation(pop)
+	}
+}
+
+func immigrationHandler(cm *contman.ContainerManager, immigChan chan *volpe.MigrationMessage) {
+	for {
+		pop, ok := <- immigChan
+		if !ok {
+			log.Error().Msgf("Exiting immigration handler")
+		}
+		err := cm.IncorporatePopulation(pop)
+		if err != nil {
+			log.Err(err).Msgf("failed to handle immigration")
+		}
+	}
 }
 
 // TODO: rewrite handler based on any aggregation of metrics needed
@@ -152,29 +191,29 @@ func deviceMetricsExporter(ctx context.Context, wc *vcomms.WorkerComms) {
 	log.Info().Msgf("Stopping device metrics export")
 }
 
-func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {
-	// extracts popln every X seconds and sends to master
-	for {
-		// TODO: make this a parameter
-		pops, err := cm.GetSubpopulations(10)
-		if err == nil {
-			for _, pop := range pops {
-				err = wc.SendSubPopulation(pop)
-				if err != nil {
-					log.Error().Caller().Msgf("couldn't send subpop %s: %s",
-						pop.GetProblemID(),
-						err.Error(),
-					)
-					continue
-				}
-				log.Info().Caller().Msgf("sent popln for %s", pop.GetProblemID())
-			}
-		}
-		time.Sleep(5 * time.Second)
-	}
-}
+// func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {
+// 	// extracts popln every X seconds and sends to master
+// 	for {
+// 		// TODO: make this a parameter
+// 		pops, err := cm.GetSubpopulations(10)
+// 		if err == nil {
+// 			for _, pop := range pops {
+// 				err = wc.SendSubPopulation(pop)
+// 				if err != nil {
+// 					log.Error().Caller().Msgf("couldn't send subpop %s: %s",
+// 						pop.GetProblemID(),
+// 						err.Error(),
+// 					)
+// 					continue
+// 				}
+// 				log.Info().Caller().Msgf("sent popln for %s", pop.GetProblemID())
+// 			}
+// 		}
+// 		time.Sleep(5 * time.Second)
+// 	}
+// }
 
-func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInstancesMessage, cm *contman.ContainerManager) {
+func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInstancesMessage, cm *contman.ContainerManager, probStore *model.ProblemStore) {
 	for {
 		adjInst, ok := <- adjInstChan
 		if !ok {
@@ -182,14 +221,26 @@ func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInsta
 			return
 		}
 		problemID := adjInst.GetProblemID()
-		
-		if !cm.HasProblem(problemID) {
-			fname, err := wc.GetImageFile(problemID)
+
+		_, ok = probStore.GetFileName(problemID)
+		if !ok {
+			meta := types.Problem{}
+			err := wc.GetProblemData(problemID, &meta)
 			if err != nil {
 				log.Error().Caller().Msgf("error fetching problemID %s: %s", problemID, err.Error())
 				continue
 			}
-			err = cm.AddProblem(problemID, fname)
+			probStore.NewProblem(meta)
+			err = probStore.RegisterImage(problemID, meta.ImagePath)
+			if err != nil {
+				log.Err(err).Msgf("error registering image for problemID %s", problemID)
+				continue
+			}
+			log.Debug().Msgf("retrieved image for problemiD %s", problemID)
+		}
+
+		if !cm.HasProblem(problemID) {
+			err := cm.TrackProblem(problemID)
 			if err != nil {
 				log.Error().Caller().Msgf("error adding problem %s: %s", problemID, err.Error())
 				continue

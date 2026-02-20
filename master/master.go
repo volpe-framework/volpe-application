@@ -7,16 +7,14 @@ import (
 	"os"
 	"sync"
 	"time"
-	ccomms "volpe-framework/comms/common"
 	vcomms "volpe-framework/comms/volpe"
 	cm "volpe-framework/container_mgr"
 
-	// "volpe-framework/metrics"
 	"volpe-framework/scheduler"
 
 	apilib "volpe-framework/master/api"
 
-	model "volpe-framework/master/model"
+	"volpe-framework/model"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -49,14 +47,20 @@ func main() {
 	portD := uint16(0)
 	fmt.Sscan(port, &portD)
 
-	cman := cm.NewContainerManager(false, masterContext)
-
-	metricChan := make(chan *vcomms.DeviceMetricsMessage, 10)
-	popChan := make(chan *ccomms.Population, 10)
 
 	problemStore, _ := model.NewProblemStore()
 
-	mc, err := vcomms.NewMasterComms(portD, metricChan, popChan, sched, problemStore, eventChannel)
+
+	emigChan := make(chan *vcomms.MigrationMessage, 10)
+
+	cman := cm.NewMasterContainerManager(masterContext, problemStore, emigChan)
+
+	metricChan := make(chan *vcomms.DeviceMetricsMessage, 10)
+	immigChan := make(chan *vcomms.MigrationMessage, 10)
+
+
+
+	mc, err := vcomms.NewMasterComms(portD, metricChan, immigChan, sched, problemStore, eventChannel)
 	if err != nil {
 		log.Fatal().Caller().Msgf("error initializing master comms: %s", err.Error())
 		panic(err)
@@ -78,11 +82,13 @@ func main() {
 
 	// go processContainerMetrics(cman, problemStore, masterContext)
 
-	go recvPopulation(cman, popChan)
+	go recvPopulation(cman, immigChan)
 
-	go applySchedule(sched, schedule, &schedMutex)
+	go calcSchedule(sched, schedule, &schedMutex)
 
-	go sendPopulation(mc, cman, schedule, &schedMutex)
+	go sendSchedule(mc, schedule, &schedMutex)
+
+	go sendPopulation(mc, emigChan)
 
 	mc.Serve()
 }
@@ -97,17 +103,17 @@ func main() {
 // 	}
 // }
 
-func recvPopulation(cman *cm.ContainerManager, popChan chan *ccomms.Population) {
+func recvPopulation(cman *cm.ContainerManager, popChan chan *vcomms.MigrationMessage) {
 	for {
 		m, ok := <-popChan
 		if !ok {
 			log.Error().Caller().Msg("popChan closed")
 			break
 		}
-		log.Info().Msgf("received population for problem %s", m.GetProblemID())
+		log.Info().Msgf("received population for problem %s", m.GetPopulation().GetProblemID())
 		err := cman.IncorporatePopulation(m)
 		if err != nil {
-			log.Err(err).Msgf("could not incorporate population %s", m.GetProblemID())
+			log.Err(err).Msgf("could not incorporate population %s", m.GetPopulation().GetProblemID())
 		}
 	}
 }
@@ -131,45 +137,55 @@ func sendMetric(metricChan chan *vcomms.DeviceMetricsMessage, eventChannel chan 
 	}
 }
 
-func sendPopulation(master *vcomms.MasterComms, cman *cm.ContainerManager, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
+func sendSchedule(master *vcomms.MasterComms, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
 	for {
 		schedMutex.Lock()
-
 		schedule.Apply(func (workerID string, problemID string, val int32) {
-			adjpop := &vcomms.AdjustInstancesMessage{
-				ProblemID: problemID,
-				Seed: nil, 
-				Instances: val,
-			}
-			if val != 0 {
-				// TODO: pop sizes parameter
-				subpop, err := cman.GetRandomSubpopulation(problemID, 10*int(val))
-				if err != nil {
-					log.Error().Caller().Msgf("error getting subpop wID %s pID %s to update schedule: %s", workerID, problemID, err.Error())
-					return
-				}
-				adjpop.Seed = subpop
-			}
-			msg := vcomms.MasterMessage{
-				Message: &vcomms.MasterMessage_AdjInst{
-					AdjInst: adjpop,
-				},
-			}
-			log.Info().Caller().Msgf("worker %s problem %s pop %d", workerID, problemID, val)
-			err := master.SendPopulationSize(workerID, &msg)
-			if err != nil {
-				log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())
-				return
-			}
-		})
+ 			adjinst := &vcomms.AdjustInstancesMessage{
+ 				ProblemID: problemID,
+ 				Instances: val,
+ 			}
+ 			msg := vcomms.MasterMessage{
+ 				Message: &vcomms.MasterMessage_AdjInst{
+ 					AdjInst: adjinst,
+ 				},
+ 			}
+ 			log.Debug().Caller().Msgf("worker %s problem %s instances %d", workerID, problemID, val)
+ 			err := master.SendMasterMessage(workerID, &msg)
+ 			if err != nil {
+ 				log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())
+ 				return
+ 			}
+ 		})
+ 
+ 		schedMutex.Unlock()
+ 		log.Debug().Msg("Sent schedule")
+ 		time.Sleep(5*time.Second)
+ 	}
+}
 
-		schedMutex.Unlock()
-		log.Debug().Msg("Sent schedule")
+func sendPopulation(master *vcomms.MasterComms, emigChan chan *vcomms.MigrationMessage) {
+	for {
+		mig, ok := <- emigChan
+		if !ok {
+			log.Error().Msgf("sendPopulation exiting")
+			return
+		}
+		msg := vcomms.MasterMessage{
+			Message: &vcomms.MasterMessage_Migration{
+				Migration: mig,
+			},
+		}
+
+		err := master.SendMasterMessage(mig.GetWorkerID(), &msg)
+		if err != nil {
+			log.Err(err).Msgf("failed to send population to workerID %s", mig.GetWorkerID())
+		}
 		time.Sleep(5*time.Second)
 	}
 }
 
-func applySchedule(sched scheduler.Scheduler, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
+func calcSchedule(sched scheduler.Scheduler, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
 	for {
 		schedMutex.Lock()
 		err := sched.FillSchedule(schedule)

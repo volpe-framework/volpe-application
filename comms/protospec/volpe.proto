@@ -6,7 +6,7 @@ option go_package = "./comms/volpe";
 
 service VolpeMaster {
   rpc StartStreams (stream WorkerMessage) returns (stream MasterMessage) {}
-  rpc GetImage(ImageRequest) returns (stream ImageStreamObject) {}
+  rpc GetProblemData(ProblemRequest) returns (stream ImageStreamObject) {}
 }
 
 message WorkerID {
@@ -14,23 +14,15 @@ message WorkerID {
 }
 
 message MasterMessage {
-  // can be adjust population only
   oneof message {
-    AdjustPopulationMessage adjPop = 1;
     AdjustInstancesMessage adjInst = 2;
+    MigrationMessage migration = 4;
   }
 }
 
 message AdjustInstancesMessage {
   string problemID = 1;
-  Population seed = 2;
   int32 instances = 3;
-}
-
-message AdjustPopulationMessage {
-  string problemID = 1;
-  Population seed = 2;
-  int32 size = 3;
 }
 
 message WorkerHello {
@@ -39,12 +31,18 @@ message WorkerHello {
   float memoryGB = 3;
 }
 
+message MigrationMessage {
+  string workerID = 1;
+  int32 containerID = 2;
+  Population population = 3;
+}
+
 message WorkerMessage {
   // can be metrics, or subpopulation
   oneof message {
     DeviceMetricsMessage metrics = 1;
-    Population population = 2;
     WorkerHello hello = 3;
+    MigrationMessage migration = 4;
   }
 }
 
@@ -72,7 +70,7 @@ message ApplicationMetrics {
   float memUsage = 2;
 }
 
-message ImageRequest {
+message ProblemRequest {
   string problemID = 1;
 }
 
