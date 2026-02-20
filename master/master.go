@@ -88,7 +88,7 @@ func main() {
 
 	go sendSchedule(mc, schedule, &schedMutex)
 
-	// go sendPopulation(mc, cman, schedule, &schedMutex)
+	go sendPopulation(mc, emigChan)
 
 	mc.Serve()
 }
@@ -151,7 +151,7 @@ func sendSchedule(master *vcomms.MasterComms, schedule scheduler.Schedule, sched
  				},
  			}
  			log.Debug().Caller().Msgf("worker %s problem %s instances %d", workerID, problemID, val)
- 			err := master.SendPopulationSize(workerID, &msg)
+ 			err := master.SendMasterMessage(workerID, &msg)
  			if err != nil {
  				log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())
  				return
@@ -164,43 +164,26 @@ func sendSchedule(master *vcomms.MasterComms, schedule scheduler.Schedule, sched
  	}
 }
 
-// func sendPopulation(master *vcomms.MasterComms, cman *cm.ContainerManager, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
-// 	// THIS TODO: make this work with emigChan
-// 	for {
-// 		schedMutex.Lock()
-// 
-// 		schedule.Apply(func (workerID string, problemID string, val int32) {
-// 			adjpop := &vcomms.AdjustInstancesMessage{
-// 				ProblemID: problemID,
-// 				Instances: val,
-// 			}
-// 			if val != 0 {
-// 				// TODO: pop sizes parameter
-// 				subpop, err := cman.GetRandomSubpopulation(problemID, 10*int(val))
-// 				if err != nil {
-// 					log.Error().Caller().Msgf("error getting subpop wID %s pID %s to update schedule: %s", workerID, problemID, err.Error())
-// 					return
-// 				}
-// 				adjpop.Seed = subpop
-// 			}
-// 			msg := vcomms.MasterMessage{
-// 				Message: &vcomms.MasterMessage_AdjInst{
-// 					AdjInst: adjpop,
-// 				},
-// 			}
-// 			log.Info().Caller().Msgf("worker %s problem %s pop %d", workerID, problemID, val)
-// 			err := master.SendPopulationSize(workerID, &msg)
-// 			if err != nil {
-// 				log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())
-// 				return
-// 			}
-// 		})
-// 
-// 		schedMutex.Unlock()
-// 		log.Debug().Msg("Sent schedule")
-// 		time.Sleep(5*time.Second)
-// 	}
-// }
+func sendPopulation(master *vcomms.MasterComms, emigChan chan *vcomms.MigrationMessage) {
+	for {
+		mig, ok := <- emigChan
+		if !ok {
+			log.Error().Msgf("sendPopulation exiting")
+			return
+		}
+		msg := vcomms.MasterMessage{
+			Message: &vcomms.MasterMessage_Migration{
+				Migration: mig,
+			},
+		}
+
+		err := master.SendMasterMessage(mig.GetWorkerID(), &msg)
+		if err != nil {
+			log.Err(err).Msgf("failed to send population to workerID %s", mig.GetWorkerID())
+		}
+		time.Sleep(5*time.Second)
+	}
+}
 
 func calcSchedule(sched scheduler.Scheduler, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
 	for {

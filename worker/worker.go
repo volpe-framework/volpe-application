@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"time"
 
+	"volpe-framework/comms/volpe"
 	vcomms "volpe-framework/comms/volpe"
 	contman "volpe-framework/container_mgr"
 	"volpe-framework/model"
@@ -82,14 +83,18 @@ func main() {
 		log.Warn().Caller().Msgf("CPU count not found, using %d CPUs instead", cpuCount)
 	}
 
+	wEmigChan := make(chan *volpe.MigrationMessage, 10)
+
 	wc, err := vcomms.NewWorkerComms(volpeMaster, workerID, memoryGB, cpuCount)
 	if err != nil {
 		log.Fatal().Caller().Msgf("could not create workercomms: %s", err.Error())
 		panic(err)
 	}
-	cm := contman.NewWorkerContainerManager(workerContext, problemStore)
+	cm := contman.NewWorkerContainerManager(workerContext, problemStore, wEmigChan)
 
 	go deviceMetricsExporter(workerContext, wc)
+
+	go emigrationHandler(wc, wEmigChan)
 
 	// go cm.RunMetricsExport(wc, workerID)
 
@@ -103,6 +108,18 @@ func main() {
 	
 	wc.HandleStreams(adjInstChan)
 
+
+}
+
+func emigrationHandler(wc *vcomms.WorkerComms, wEmigChan chan *volpe.MigrationMessage) {
+	for {
+		pop, ok := <- wEmigChan
+		if !ok {
+			log.Error().Msgf("Exiting emigration handler")
+			return
+		}
+		wc.SendSubPopulation(pop)
+	}
 }
 
 // TODO: rewrite handler based on any aggregation of metrics needed

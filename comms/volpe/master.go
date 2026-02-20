@@ -312,7 +312,7 @@ func (mc *MasterComms) Serve() error {
 	return err
 }
 
-func (mc *MasterComms) SendPopulationSize(workerID string, msg *MasterMessage) error {
+func (mc *MasterComms) SendMasterMessage(workerID string, msg *MasterMessage) error {
 	mcchan, ok := mc.mcs.channs[workerID]
 	if !ok {
 		return errors.New("unknown workerID")

@@ -49,11 +49,11 @@ func (cm *ContainerManager) initCM(rootContext context.Context, problemStore *mo
 	return cm
 }
 
-func NewWorkerContainerManager(rootContext context.Context, problemStore *model.ProblemStore) *ContainerManager {
+func NewWorkerContainerManager(rootContext context.Context, problemStore *model.ProblemStore, wEmigChan chan *volpe.MigrationMessage) *ContainerManager {
 	cm := new(ContainerManager)
 	cm.initCM(rootContext, problemStore)
 	cm.worker = true
-	cm.emigChan = nil
+	cm.emigChan = wEmigChan
 	return cm
 }
 
