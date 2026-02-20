@@ -111,6 +111,9 @@ func (pc *ProblemContainer) GetRandomSubpopulation() (*comms.Population, error) 
 		log.Error().Caller().Msg(err.Error())
 		return nil, err
 	}
+	if len(pop.GetMembers()) != int(pc.meta.MigrationSize) {
+		log.Warn().Msgf("problemID %s, requested %d but got %d for random subpop", pc.meta.ProblemID, pc.meta.MigrationSize, len(pop.GetMembers()))
+	}
 	pop.ProblemID = &pc.problemID
 	return pop, nil
 }
@@ -121,6 +124,9 @@ func (pc *ProblemContainer) GetSubpopulation(count int) (*comms.Population, erro
 	if err != nil {
 		log.Error().Caller().Msg(err.Error())
 		return nil, err
+	}
+	if len(pop.GetMembers()) != int(pc.meta.MigrationSize) {
+		log.Warn().Msgf("problemID %s, requested %d but got %d for best subpop", pc.meta.ProblemID, pc.meta.MigrationSize, len(pop.GetMembers()))
 	}
 	pop.ProblemID = &pc.problemID
 	return pop, nil
@@ -159,7 +165,6 @@ func (pc *ProblemContainer) sendResults() {
 
 func (pc *ProblemContainer) runGenerations() {
 	for {
-		// TODO: configure generation run count
 		migrationSizeMsg := ccomms.PopulationSize{Size: pc.meta.MigrationSize}
 		_, err := pc.commsClient.RunForGenerations(pc.containerContext, &ccomms.PopulationSize{Size: pc.meta.MigrationFrequency})
 		if pc.containerContext.Err() != nil {
@@ -170,17 +175,21 @@ func (pc *ProblemContainer) runGenerations() {
 			time.Sleep(5 * time.Second)
 			continue
 		}
+		log.Debug().Msgf("ProblemID %s ran for %d generations", pc.problemID, pc.meta.MigrationFrequency)
 		popln, err := pc.commsClient.GetBestPopulation(pc.containerContext, &migrationSizeMsg)
 		if err != nil {
 			log.Err(err).Msgf("failed to get best population for %s", pc.problemID)
 			break
 		}
+		popln.ProblemID = &pc.meta.ProblemID
 		mig := volpe.MigrationMessage{
 			Population: popln,
 			WorkerID: "",
+			// TODO: set proper containerID
 			ContainerID: 0,
 		}
 		pc.wEmigChan <- &mig
+		log.Info().Msgf("Queued emigration population for problem %s", pc.meta.ProblemID)
 	}
 	log.Info().Caller().Msgf("stopping gen for %s", pc.problemID)
 }

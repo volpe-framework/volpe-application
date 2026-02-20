@@ -52,6 +52,8 @@ func main() {
 
 	volpeMaster := workerConfig.GeneralConfig.VolPEMaster
 
+	immigChan := make(chan *volpe.MigrationMessage, 10)
+
 	if volpeMaster == "" {
 		log.Warn().Msgf("VolPE master not found in config, loading from env variable VOLPE_MASTER")
 
@@ -105,10 +107,10 @@ func main() {
 	adjInstChan := make(chan *vcomms.AdjustInstancesMessage, 10)
 
 	go adjInstHandler(wc, adjInstChan, cm, problemStore)
+
+	go immigrationHandler(cm, immigChan)
 	
-	wc.HandleStreams(adjInstChan)
-
-
+	wc.HandleStreams(adjInstChan, immigChan)
 }
 
 func emigrationHandler(wc *vcomms.WorkerComms, wEmigChan chan *volpe.MigrationMessage) {
@@ -118,7 +120,21 @@ func emigrationHandler(wc *vcomms.WorkerComms, wEmigChan chan *volpe.MigrationMe
 			log.Error().Msgf("Exiting emigration handler")
 			return
 		}
+		log.Info().Msgf("Sending emigration for problemID %s from worker %s, container %d", pop.GetPopulation().GetProblemID(), pop.GetWorkerID(), pop.GetContainerID())
 		wc.SendSubPopulation(pop)
+	}
+}
+
+func immigrationHandler(cm *contman.ContainerManager, immigChan chan *volpe.MigrationMessage) {
+	for {
+		pop, ok := <- immigChan
+		if !ok {
+			log.Error().Msgf("Exiting immigration handler")
+		}
+		err := cm.IncorporatePopulation(pop)
+		if err != nil {
+			log.Err(err).Msgf("failed to handle immigration")
+		}
 	}
 }
 

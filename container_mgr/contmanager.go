@@ -3,7 +3,6 @@ package container_mgr
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand/v2"
 	"slices"
@@ -18,7 +17,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var ErrUnknownProblem error = errors.New("This problem has no containers")
+
+type UnknownProblemError struct {
+	ProblemID string
+}
+
+func (e *UnknownProblemError) Error() string {
+	return fmt.Sprintf("Unknown problem with ID %s", e.ProblemID)
+}
 
 // Manages an entire set of problem containers
 // TODO: testing for this module
@@ -109,7 +115,7 @@ func (cm *ContainerManager) TrackProblem(problemID string) error {
 
 	meta := types.Problem{}
 	if cm.problemStore.GetMetadata(problemID, &meta) == nil {
-		return ErrUnknownProblem
+		return &UnknownProblemError{ProblemID: problemID}
 	}
 
 	if cm.hasProblem(problemID) {
@@ -130,7 +136,7 @@ func (cm *ContainerManager) untrackProblem(problemID string) error {
 
 	problem, ok := cm.problemContainers[problemID]
 	if !ok {
-		return ErrUnknownProblem
+		return &UnknownProblemError{problemID}
 	}
 	delete(cm.problemContainers, problemID)
 
@@ -246,7 +252,7 @@ func (cm *ContainerManager) IncorporatePopulation(mig *volpe.MigrationMessage) e
 
 	problem, ok := cm.problemContainers[mig.GetPopulation().GetProblemID()]
 	if !ok {
-		return ErrUnknownProblem
+		return &UnknownProblemError{ProblemID: mig.GetPopulation().GetProblemID()}
 	}
 
 	pop := mig.GetPopulation()
@@ -290,7 +296,7 @@ func (cm *ContainerManager) adjustInstances(problemID string, instances int) err
 		problemContext := problem.problemContext
 		problemMeta := types.Problem{}
 		if cm.problemStore.GetMetadata(problemID, &problemMeta) == nil {
-			return ErrUnknownProblem
+			return &UnknownProblemError{ProblemID: problemID}
 		}
 		for i := len(containers); i < instances; i++ {
 			pc, err := NewProblemContainer(problemID, &problemMeta, cm.worker, problemContext, cm.emigChan)
@@ -308,30 +314,6 @@ func (cm *ContainerManager) adjustInstances(problemID string, instances int) err
 		problem.problemContainers = containers[:instances]
 		containers = containers[:instances]
 	}
-
-	// TODO: move to separate function to handle migration
-	// perContainer := len(seedPop) / len(containers)
-	// log.Debug().Msgf("Problem: %s Instances: %d SeedPop: %d", problemID, instances, len(seedPop))
-	// for i, cont := range containers {
-	// 	newPop := common.Population{
-	// 		ProblemID: &problemID,
-	// 		Members:   seedPop[i*perContainer : (i+1)*perContainer],
-	// 	}
-	// 	n_failures := 0
-	// 	for n_failures <= 5 {
-	// 		_, err := cont.commsClient.InitFromSeedPopulation(context.Background(), &newPop)
-	// 		if err == nil {
-	// 			break
-	// 		} else {
-	// 			log.Warn().Msgf("error initializing container popln %s: %s", problemID, err.Error())
-	// 			time.Sleep(5 * time.Second)
-	// 			n_failures += 1
-	// 		}
-	// 	}
-	// 	if n_failures >= 5 {
-	// 		return errors.New("Failed to initialize population")
-	// 	}
-	// }
 	return nil
 }
 
@@ -347,11 +329,11 @@ func (cm *ContainerManager) HandleInstancesEvent(event *volpe.AdjustInstancesMes
 		cm.untrackProblem(problemID)
 	} else if !cm.hasProblem(problemID) {
 		log.Warn().Msgf("CM is ignoring instance event for unknown problem %s", problemID)
-		return ErrUnknownProblem
+		return &UnknownProblemError{ProblemID: problemID}
 	} else {
 		_, ok := cm.problemContainers[problemID]
 		if !ok {
-			return ErrUnknownProblem
+			return &UnknownProblemError{ProblemID: problemID}
 		}
 		err := cm.adjustInstances(problemID, instances)
 		if err != nil {
@@ -368,11 +350,12 @@ func (cm *ContainerManager) RegisterResultListener(problemID string, channel cha
 
 	problem, ok := cm.problemContainers[problemID]
 	if !ok {
-		return ErrUnknownProblem
+		return &UnknownProblemError{ProblemID: problemID}
 	}
 	if len(problem.problemContainers) < 1 {
 		log.Error().Msgf("no containers for problemID %s, can't register result listener", problemID)
-		return ErrUnknownProblem
+		return &UnknownProblemError{ProblemID: problemID}
+
 	}
 	problem.problemContainers[0].RegisterResultChannel(channel)
 	return nil
@@ -385,11 +368,11 @@ func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan 
 
 	problem, ok := cm.problemContainers[problemID]
 	if !ok {
-		return ErrUnknownProblem
+		return &UnknownProblemError{ProblemID: problemID}
 	}
 	if len(problem.problemContainers) < 1 {
 		log.Error().Msgf("no containers for problemID %s, can't de-register result listener", problemID)
-		return ErrUnknownProblem
+		return &UnknownProblemError{ProblemID: problemID}
 	}
 	problem.problemContainers[0].DeRegisterResultChannel(channel)
 	close(channel)

@@ -112,6 +112,8 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 		ProblemID: problemID,
 		MemoryUsage: metaData.Memory,
 		IslandCount: metaData.TargetInstances,
+		MigrationFrequency: metaData.MigrationFrequency,
+		MigrationSize: metaData.MigrationSize,
 	})
 	va.probstore.RegisterImage(problemID, fname)
 
@@ -138,7 +140,7 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 
 	var problem types.Problem
 	if va.probstore.GetMetadata(problemID, &problem) == nil {
-		log.Err(contman.ErrUnknownProblem).Msgf("Unknown problem %s", problemID)
+		log.Err(&contman.UnknownProblemError{ProblemID: problemID}).Msg("")
 		c.Status(404)
 	}
 

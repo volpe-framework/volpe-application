@@ -74,7 +74,7 @@ func (wc *WorkerComms) CloseCommms() {
 	}
 }
 
-func (wc *WorkerComms) HandleStreams(adjInstChannel chan *AdjustInstancesMessage) {
+func (wc *WorkerComms) HandleStreams(adjInstChannel chan *AdjustInstancesMessage, immigChan chan *MigrationMessage) {
 	for {
 		msg, err := wc.stream.Recv()
 		if err == io.EOF {
@@ -87,6 +87,7 @@ func (wc *WorkerComms) HandleStreams(adjInstChannel chan *AdjustInstancesMessage
 		if msg.GetAdjInst() != nil {
 			adjPop := msg.GetAdjInst()
 			adjInstChannel <- adjPop
+		} else if msg.GetMigration() != nil {
 		} else {
 			log.Warn().Caller().Msg("received unexpected msg, ignoring")
 		}
