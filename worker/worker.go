@@ -11,6 +11,7 @@ import (
 	vcomms "volpe-framework/comms/volpe"
 	contman "volpe-framework/container_mgr"
 	"volpe-framework/model"
+	"volpe-framework/types"
 
 	loadstat "github.com/mackerelio/go-osstat/loadavg"
 	memorystat "github.com/mackerelio/go-osstat/memory"
@@ -190,12 +191,14 @@ func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInsta
 
 		_, ok = probStore.GetFileName(problemID)
 		if !ok {
-			fname, err := wc.GetImageFile(problemID)
+			meta := types.Problem{}
+			err := wc.GetProblemData(problemID, &meta)
 			if err != nil {
 				log.Error().Caller().Msgf("error fetching problemID %s: %s", problemID, err.Error())
 				continue
 			}
-			err = probStore.RegisterImage(problemID, fname)
+			probStore.NewProblem(meta)
+			err = probStore.RegisterImage(problemID, meta.ImagePath)
 			if err != nil {
 				log.Err(err).Msgf("error registering image for problemID %s", problemID)
 				continue

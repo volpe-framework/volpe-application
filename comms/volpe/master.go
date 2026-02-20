@@ -25,7 +25,7 @@ type MasterComms struct {
 }
 
 type ProblemStore interface {
-	GetFileName(problemID string) (string, bool)
+	GetMetadata(problemID string, meta *types.Problem) *types.Problem
 }
 
 type masterCommsServer struct {
@@ -223,13 +223,16 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[Worke
 	return nil
 }
 
-func (mcs *masterCommsServer) GetImage(req *ImageRequest, stream grpc.ServerStreamingServer[common.ImageStreamObject]) error {
+func (mcs *masterCommsServer) GetProblemData(req *ProblemRequest, stream grpc.ServerStreamingServer[common.ImageStreamObject]) error {
 	problemID := req.GetProblemID()
-	fname, ok := mcs.probStore.GetFileName(problemID)
-	if !ok {
-		log.Error().Caller().Msgf("missing image for PID %s", problemID)
-		return nil
+	meta := types.Problem{}
+	tmp := mcs.probStore.GetMetadata(problemID, &meta)
+	if tmp == nil {
+		return fmt.Errorf("Unknown problemID %s", problemID)
 	}
+
+	fname := meta.ImagePath
+	
 	file, err := os.Open(fname)
 	if err != nil {
 		log.Err(err).Caller().Msgf("failed to get image")
@@ -244,9 +247,11 @@ func (mcs *masterCommsServer) GetImage(req *ImageRequest, stream grpc.ServerStre
 
 	stream.Send(&common.ImageStreamObject{
 		Data: &common.ImageStreamObject_Details{
-			Details: &common.ImageDetails{
+			Details: &common.ProblemDetails{
 				ProblemID: problemID,
 				ImageSizeBytes: int32(fileSize),
+				MigrationSize: meta.MigrationSize,
+				MigrationFrequency: meta.MigrationFrequency,
 			},
 		},
 	})

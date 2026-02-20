@@ -7,11 +7,12 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"volpe-framework/types"
+
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
-
 
 // TODO: handle stream closing
 
@@ -107,33 +108,33 @@ func (wc *WorkerComms) SendSubPopulation(migrationMsg *MigrationMessage) error {
 	workerMsg := WorkerMessage{Message: &WorkerMessage_Migration{migrationMsg}}
 	err := wc.stream.Send(&workerMsg)
 	if err != nil {
-		log.Err(err).Caller().Msgf("sending subpop for problemID %s containerID %s", migrationMsg.GetPopulation().GetProblemID(), migrationMsg.GetContainerID())
+		log.Err(err).Caller().Msgf("sending subpop for problemID %s containerID %d", migrationMsg.GetPopulation().GetProblemID(), migrationMsg.GetContainerID())
 	}
 	return err
 }
 
-func (wc *WorkerComms) GetImageFile(problemID string) (string, error) {
+func (wc *WorkerComms) GetProblemData(problemID string, meta *types.Problem) error {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
-	stream, err := wc.client.GetImage(ctx, &ImageRequest{
+	stream, err := wc.client.GetProblemData(ctx, &ProblemRequest{
 		ProblemID: problemID,
 	})
 	if err != nil {
 		log.Error().Caller().Msg(err.Error())
-		return "", err
+		return err
 	}
 
 
 	detailsMsg, err := stream.Recv()
 	if err != nil {
 		log.Error().Caller().Msg(err.Error())
-		return "", err
+		return err
 	}
 	details := detailsMsg.GetDetails()
 	if details == nil {
 		log.Error().Caller().Msgf("expected first msg details for pid %s", problemID)
-		return "", errors.New("expected details msg")
+		return errors.New("expected details msg")
 	}
 
 	fileSizeBytes := details.GetImageSizeBytes()
@@ -143,7 +144,7 @@ func (wc *WorkerComms) GetImageFile(problemID string) (string, error) {
 	file, err := os.Create(fname)
 	if err != nil {
 		log.Error().Caller().Msgf("could not create file %s: %s", fname, err.Error())
-		return "", err
+		return  err
 	}
 	defer file.Close()
 
@@ -151,12 +152,12 @@ func (wc *WorkerComms) GetImageFile(problemID string) (string, error) {
 		recMsg, err := stream.Recv()
 		if err != nil {
 			log.Error().Caller().Msgf("PID %s: %s", problemID, err.Error())
-			return "", err
+			return err
 		}
 		dataMsg := recMsg.GetChunk()
 		if dataMsg == nil {
 			log.Error().Caller().Msgf("PID %s: expected data msg", problemID)
-			return "", errors.New("expected data msg")
+			return errors.New("expected data msg")
 		}
 		data := dataMsg.GetData()
 		file.Write(data)
@@ -164,5 +165,10 @@ func (wc *WorkerComms) GetImageFile(problemID string) (string, error) {
 		doneBytes += int32(len(data))
 	}
 
-	return fname, nil
+	meta.ProblemID = problemID
+	meta.ImagePath = fname
+	meta.MigrationFrequency = details.MigrationFrequency
+	meta.MigrationSize = details.MigrationSize
+
+	return nil
 }
