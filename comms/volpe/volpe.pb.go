@@ -548,27 +548,27 @@ func (x *ApplicationMetrics) GetMemUsage() float32 {
 	return 0
 }
 
-type ImageRequest struct {
+type ProblemRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProblemID     string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ImageRequest) Reset() {
-	*x = ImageRequest{}
+func (x *ProblemRequest) Reset() {
+	*x = ProblemRequest{}
 	mi := &file_volpe_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ImageRequest) String() string {
+func (x *ProblemRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ImageRequest) ProtoMessage() {}
+func (*ProblemRequest) ProtoMessage() {}
 
-func (x *ImageRequest) ProtoReflect() protoreflect.Message {
+func (x *ProblemRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_volpe_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -580,12 +580,12 @@ func (x *ImageRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ImageRequest.ProtoReflect.Descriptor instead.
-func (*ImageRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ProblemRequest.ProtoReflect.Descriptor instead.
+func (*ProblemRequest) Descriptor() ([]byte, []int) {
 	return file_volpe_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *ImageRequest) GetProblemID() string {
+func (x *ProblemRequest) GetProblemID() string {
 	if x != nil {
 		return x.ProblemID
 	}
@@ -635,12 +635,12 @@ const file_volpe_proto_rawDesc = "" +
 	"netRxBytes\"J\n" +
 	"\x12ApplicationMetrics\x12\x18\n" +
 	"\acpuUtil\x18\x01 \x01(\x02R\acpuUtil\x12\x1a\n" +
-	"\bmemUsage\x18\x02 \x01(\x02R\bmemUsage\",\n" +
-	"\fImageRequest\x12\x1c\n" +
-	"\tproblemID\x18\x01 \x01(\tR\tproblemID2v\n" +
+	"\bmemUsage\x18\x02 \x01(\x02R\bmemUsage\".\n" +
+	"\x0eProblemRequest\x12\x1c\n" +
+	"\tproblemID\x18\x01 \x01(\tR\tproblemID2~\n" +
 	"\vVolpeMaster\x124\n" +
-	"\fStartStreams\x12\x0e.WorkerMessage\x1a\x0e.MasterMessage\"\x00(\x010\x01\x121\n" +
-	"\bGetImage\x12\r.ImageRequest\x1a\x12.ImageStreamObject\"\x000\x01B\x0fZ\r./comms/volpeb\x06proto3"
+	"\fStartStreams\x12\x0e.WorkerMessage\x1a\x0e.MasterMessage\"\x00(\x010\x01\x129\n" +
+	"\x0eGetProblemData\x12\x0f.ProblemRequest\x1a\x12.ImageStreamObject\"\x000\x01B\x0fZ\r./comms/volpeb\x06proto3"
 
 var (
 	file_volpe_proto_rawDescOnce sync.Once
@@ -664,7 +664,7 @@ var file_volpe_proto_goTypes = []any{
 	(*WorkerMessage)(nil),            // 5: WorkerMessage
 	(*DeviceMetricsMessage)(nil),     // 6: DeviceMetricsMessage
 	(*ApplicationMetrics)(nil),       // 7: ApplicationMetrics
-	(*ImageRequest)(nil),             // 8: ImageRequest
+	(*ProblemRequest)(nil),           // 8: ProblemRequest
 	(*common.Population)(nil),        // 9: Population
 	(*common.ImageStreamObject)(nil), // 10: ImageStreamObject
 }
@@ -677,9 +677,9 @@ var file_volpe_proto_depIdxs = []int32{
 	3,  // 5: WorkerMessage.hello:type_name -> WorkerHello
 	4,  // 6: WorkerMessage.migration:type_name -> MigrationMessage
 	5,  // 7: VolpeMaster.StartStreams:input_type -> WorkerMessage
-	8,  // 8: VolpeMaster.GetImage:input_type -> ImageRequest
+	8,  // 8: VolpeMaster.GetProblemData:input_type -> ProblemRequest
 	1,  // 9: VolpeMaster.StartStreams:output_type -> MasterMessage
-	10, // 10: VolpeMaster.GetImage:output_type -> ImageStreamObject
+	10, // 10: VolpeMaster.GetProblemData:output_type -> ImageStreamObject
 	9,  // [9:11] is the sub-list for method output_type
 	7,  // [7:9] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name

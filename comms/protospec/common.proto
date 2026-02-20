@@ -14,12 +14,12 @@ message Population {
 
 message ImageStreamObject {
   oneof data {
-    ImageDetails details = 1;
+    ProblemDetails details = 1;
     ImageChunk chunk = 2;
   }
 }
 
-message ImageDetails {
+message ProblemDetails {
   string problemID = 1;
   int32 imageSizeBytes = 2;
   int32 migrationFrequency = 3;

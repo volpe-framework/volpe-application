@@ -173,7 +173,7 @@ func (x *ImageStreamObject) GetData() isImageStreamObject_Data {
 	return nil
 }
 
-func (x *ImageStreamObject) GetDetails() *ImageDetails {
+func (x *ImageStreamObject) GetDetails() *ProblemDetails {
 	if x != nil {
 		if x, ok := x.Data.(*ImageStreamObject_Details); ok {
 			return x.Details
@@ -196,7 +196,7 @@ type isImageStreamObject_Data interface {
 }
 
 type ImageStreamObject_Details struct {
-	Details *ImageDetails `protobuf:"bytes,1,opt,name=details,proto3,oneof"`
+	Details *ProblemDetails `protobuf:"bytes,1,opt,name=details,proto3,oneof"`
 }
 
 type ImageStreamObject_Chunk struct {
@@ -207,7 +207,7 @@ func (*ImageStreamObject_Details) isImageStreamObject_Data() {}
 
 func (*ImageStreamObject_Chunk) isImageStreamObject_Data() {}
 
-type ImageDetails struct {
+type ProblemDetails struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	ProblemID          string                 `protobuf:"bytes,1,opt,name=problemID,proto3" json:"problemID,omitempty"`
 	ImageSizeBytes     int32                  `protobuf:"varint,2,opt,name=imageSizeBytes,proto3" json:"imageSizeBytes,omitempty"`
@@ -217,20 +217,20 @@ type ImageDetails struct {
 	sizeCache          protoimpl.SizeCache
 }
 
-func (x *ImageDetails) Reset() {
-	*x = ImageDetails{}
+func (x *ProblemDetails) Reset() {
+	*x = ProblemDetails{}
 	mi := &file_common_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ImageDetails) String() string {
+func (x *ProblemDetails) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ImageDetails) ProtoMessage() {}
+func (*ProblemDetails) ProtoMessage() {}
 
-func (x *ImageDetails) ProtoReflect() protoreflect.Message {
+func (x *ProblemDetails) ProtoReflect() protoreflect.Message {
 	mi := &file_common_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -242,33 +242,33 @@ func (x *ImageDetails) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ImageDetails.ProtoReflect.Descriptor instead.
-func (*ImageDetails) Descriptor() ([]byte, []int) {
+// Deprecated: Use ProblemDetails.ProtoReflect.Descriptor instead.
+func (*ProblemDetails) Descriptor() ([]byte, []int) {
 	return file_common_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ImageDetails) GetProblemID() string {
+func (x *ProblemDetails) GetProblemID() string {
 	if x != nil {
 		return x.ProblemID
 	}
 	return ""
 }
 
-func (x *ImageDetails) GetImageSizeBytes() int32 {
+func (x *ProblemDetails) GetImageSizeBytes() int32 {
 	if x != nil {
 		return x.ImageSizeBytes
 	}
 	return 0
 }
 
-func (x *ImageDetails) GetMigrationFrequency() int32 {
+func (x *ProblemDetails) GetMigrationFrequency() int32 {
 	if x != nil {
 		return x.MigrationFrequency
 	}
 	return 0
 }
 
-func (x *ImageDetails) GetMigrationSize() int32 {
+func (x *ProblemDetails) GetMigrationSize() int32 {
 	if x != nil {
 		return x.MigrationSize
 	}
@@ -333,12 +333,12 @@ const file_common_proto_rawDesc = "" +
 	"\amembers\x18\x01 \x03(\v2\v.IndividualR\amembers\x12!\n" +
 	"\tproblemID\x18\x02 \x01(\tH\x00R\tproblemID\x88\x01\x01B\f\n" +
 	"\n" +
-	"_problemID\"k\n" +
-	"\x11ImageStreamObject\x12)\n" +
-	"\adetails\x18\x01 \x01(\v2\r.ImageDetailsH\x00R\adetails\x12#\n" +
+	"_problemID\"m\n" +
+	"\x11ImageStreamObject\x12+\n" +
+	"\adetails\x18\x01 \x01(\v2\x0f.ProblemDetailsH\x00R\adetails\x12#\n" +
 	"\x05chunk\x18\x02 \x01(\v2\v.ImageChunkH\x00R\x05chunkB\x06\n" +
-	"\x04data\"\xaa\x01\n" +
-	"\fImageDetails\x12\x1c\n" +
+	"\x04data\"\xac\x01\n" +
+	"\x0eProblemDetails\x12\x1c\n" +
 	"\tproblemID\x18\x01 \x01(\tR\tproblemID\x12&\n" +
 	"\x0eimageSizeBytes\x18\x02 \x01(\x05R\x0eimageSizeBytes\x12.\n" +
 	"\x12migrationFrequency\x18\x03 \x01(\x05R\x12migrationFrequency\x12$\n" +
@@ -364,12 +364,12 @@ var file_common_proto_goTypes = []any{
 	(*Individual)(nil),        // 0: Individual
 	(*Population)(nil),        // 1: Population
 	(*ImageStreamObject)(nil), // 2: ImageStreamObject
-	(*ImageDetails)(nil),      // 3: ImageDetails
+	(*ProblemDetails)(nil),    // 3: ProblemDetails
 	(*ImageChunk)(nil),        // 4: ImageChunk
 }
 var file_common_proto_depIdxs = []int32{
 	0, // 0: Population.members:type_name -> Individual
-	3, // 1: ImageStreamObject.details:type_name -> ImageDetails
+	3, // 1: ImageStreamObject.details:type_name -> ProblemDetails
 	4, // 2: ImageStreamObject.chunk:type_name -> ImageChunk
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type

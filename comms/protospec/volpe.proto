@@ -6,7 +6,7 @@ option go_package = "./comms/volpe";
 
 service VolpeMaster {
   rpc StartStreams (stream WorkerMessage) returns (stream MasterMessage) {}
-  rpc GetImage(ImageRequest) returns (stream ImageStreamObject) {}
+  rpc GetProblemData(ProblemRequest) returns (stream ImageStreamObject) {}
 }
 
 message WorkerID {
@@ -70,7 +70,7 @@ message ApplicationMetrics {
   float memUsage = 2;
 }
 
-message ImageRequest {
+message ProblemRequest {
   string problemID = 1;
 }
 
