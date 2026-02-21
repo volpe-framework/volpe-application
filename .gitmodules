@@ -1,0 +1,3 @@
+[submodule "volpe-protobuf"]
+	path = comms
+	url = git@github.com:volpe-framework/volpe-protobuf.git

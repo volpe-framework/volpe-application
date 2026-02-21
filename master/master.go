@@ -7,7 +7,8 @@ import (
 	"os"
 	"sync"
 	"time"
-	vcomms "volpe-framework/comms/volpe"
+	pcomms "volpe-framework/comms/volpe"
+	vcomms "volpe-framework/vcomms"
 	cm "volpe-framework/container_mgr"
 
 	"volpe-framework/scheduler"
@@ -51,12 +52,12 @@ func main() {
 	problemStore, _ := model.NewProblemStore()
 
 
-	emigChan := make(chan *vcomms.MigrationMessage, 10)
+	emigChan := make(chan *pcomms.MigrationMessage, 10)
 
 	cman := cm.NewMasterContainerManager(masterContext, problemStore, emigChan)
 
-	metricChan := make(chan *vcomms.DeviceMetricsMessage, 10)
-	immigChan := make(chan *vcomms.MigrationMessage, 10)
+	metricChan := make(chan *pcomms.DeviceMetricsMessage, 10)
+	immigChan := make(chan *pcomms.MigrationMessage, 10)
 
 
 
@@ -103,7 +104,7 @@ func main() {
 // 	}
 // }
 
-func recvPopulation(cman *cm.ContainerManager, popChan chan *vcomms.MigrationMessage) {
+func recvPopulation(cman *cm.ContainerManager, popChan chan *pcomms.MigrationMessage) {
 	for {
 		m, ok := <-popChan
 		if !ok {
@@ -118,7 +119,7 @@ func recvPopulation(cman *cm.ContainerManager, popChan chan *vcomms.MigrationMes
 	}
 }
 
-func sendMetric(metricChan chan *vcomms.DeviceMetricsMessage, eventChannel chan string, sched scheduler.Scheduler) {
+func sendMetric(metricChan chan *pcomms.DeviceMetricsMessage, eventChannel chan string, sched scheduler.Scheduler) {
 	for {
 		m, ok := <-metricChan
 		if !ok {
@@ -141,12 +142,12 @@ func sendSchedule(master *vcomms.MasterComms, schedule scheduler.Schedule, sched
 	for {
 		schedMutex.Lock()
 		schedule.Apply(func (workerID string, problemID string, val int32) {
- 			adjinst := &vcomms.AdjustInstancesMessage{
+ 			adjinst := &pcomms.AdjustInstancesMessage{
  				ProblemID: problemID,
  				Instances: val,
  			}
- 			msg := vcomms.MasterMessage{
- 				Message: &vcomms.MasterMessage_AdjInst{
+ 			msg := pcomms.MasterMessage{
+ 				Message: &pcomms.MasterMessage_AdjInst{
  					AdjInst: adjinst,
  				},
  			}
@@ -164,15 +165,15 @@ func sendSchedule(master *vcomms.MasterComms, schedule scheduler.Schedule, sched
  	}
 }
 
-func sendPopulation(master *vcomms.MasterComms, emigChan chan *vcomms.MigrationMessage) {
+func sendPopulation(master *vcomms.MasterComms, emigChan chan *pcomms.MigrationMessage) {
 	for {
 		mig, ok := <- emigChan
 		if !ok {
 			log.Error().Msgf("sendPopulation exiting")
 			return
 		}
-		msg := vcomms.MasterMessage{
-			Message: &vcomms.MasterMessage_Migration{
+		msg := pcomms.MasterMessage{
+			Message: &pcomms.MasterMessage_Migration{
 				Migration: mig,
 			},
 		}
@@ -193,34 +194,6 @@ func calcSchedule(sched scheduler.Scheduler, schedule scheduler.Schedule, schedM
 			log.Error().Caller().Msgf("error filling sched: %s", err.Error())
 			return
 		}
-		/* Moved applying changes to diff call
-		schedule.Apply(func (workerID string, problemID string, val int32) {
-			adjpop := &vcomms.AdjustInstancesMessage{
-				ProblemID: problemID,
-				Seed: nil, 
-				Instances: val,
-			}
-			if val != 0 {
-				subpop, err := cman.GetRandomSubpopulation(problemID, val)
-				if err != nil {
-					log.Error().Caller().Msgf("error getting subpop wID %s pID %s to update schedule: %s", workerID, problemID, err.Error())
-					return
-				}
-				adjpop.Seed = subpop
-			}
-			msg := vcomms.MasterMessage{
-				Message: &vcomms.MasterMessage_AdjInst{
-					AdjInst: adjpop,
-				},
-			}
-			log.Info().Caller().Msgf("worker %s problem %s pop %d", workerID, problemID, val)
-			err = master.SendPopulationSize(workerID, &msg)
-			if err != nil {
-				log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())
-				return
-			}
-		})
-		*/
 		log.Info().Caller().Msg("Modified schedule")
 		schedMutex.Unlock()
 		time.Sleep(5*time.Second)

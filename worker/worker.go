@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"volpe-framework/comms/volpe"
-	vcomms "volpe-framework/comms/volpe"
+	vcomms "volpe-framework/vcomms"
+	pcomms "volpe-framework/comms/volpe"
 	contman "volpe-framework/container_mgr"
 	"volpe-framework/model"
 	"volpe-framework/types"
@@ -104,7 +105,7 @@ func main() {
 	// metricsChan := make(chan *contman.ContainerMetrics, 5)
 	// go cm.StreamContainerMetrics(metricsChan, workerContext)
 
-	adjInstChan := make(chan *vcomms.AdjustInstancesMessage, 10)
+	adjInstChan := make(chan *pcomms.AdjustInstancesMessage, 10)
 
 	go adjInstHandler(wc, adjInstChan, cm, problemStore)
 
@@ -180,7 +181,7 @@ func deviceMetricsExporter(ctx context.Context, wc *vcomms.WorkerComms) {
 	}
 
 	for ctx.Err() == nil {
-		wc.SendDeviceMetrics(&vcomms.DeviceMetricsMessage{
+		wc.SendDeviceMetrics(&pcomms.DeviceMetricsMessage{
 			CpuUtilPerc: cpuPerc,
 			MemUsageGB: memGB,
 			NetTxBytes: netTxBytes,
@@ -191,29 +192,7 @@ func deviceMetricsExporter(ctx context.Context, wc *vcomms.WorkerComms) {
 	log.Info().Msgf("Stopping device metrics export")
 }
 
-// func populationExtractor(cm *contman.ContainerManager, wc *vcomms.WorkerComms) {
-// 	// extracts popln every X seconds and sends to master
-// 	for {
-// 		// TODO: make this a parameter
-// 		pops, err := cm.GetSubpopulations(10)
-// 		if err == nil {
-// 			for _, pop := range pops {
-// 				err = wc.SendSubPopulation(pop)
-// 				if err != nil {
-// 					log.Error().Caller().Msgf("couldn't send subpop %s: %s",
-// 						pop.GetProblemID(),
-// 						err.Error(),
-// 					)
-// 					continue
-// 				}
-// 				log.Info().Caller().Msgf("sent popln for %s", pop.GetProblemID())
-// 			}
-// 		}
-// 		time.Sleep(5 * time.Second)
-// 	}
-// }
-
-func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *vcomms.AdjustInstancesMessage, cm *contman.ContainerManager, probStore *model.ProblemStore) {
+func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *pcomms.AdjustInstancesMessage, cm *contman.ContainerManager, probStore *model.ProblemStore) {
 	for {
 		adjInst, ok := <- adjInstChan
 		if !ok {
