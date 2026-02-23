@@ -51,6 +51,7 @@ func NewProblemContainer(problemID string, meta *types.Problem, worker bool, pro
 	pc.meta = meta
 	pc.wEmigChan = wEmigChan
 	pc.containerID = containerID
+	// pc.incorpChan = incorpChan
 
 	if worker && pc.wEmigChan == nil {
 		return nil, errors.New("wEmigChan required for problemContainer")
@@ -139,7 +140,10 @@ func (pc *ProblemContainer) sendResultOnce() {
 	pc.rcMut.Lock()
 	defer pc.rcMut.Unlock()
 
-	result, err := pc.commsClient.GetResults(pc.containerContext, &ccomms.PopulationSize{Size: 10})
+	timeout, cancel := context.WithTimeout(pc.containerContext, 5*time.Second)
+	defer cancel()
+
+	result, err := pc.commsClient.GetResults(timeout, &ccomms.PopulationSize{Size: 10})
 	if err != nil {
 		log.Err(err).Caller().Msgf("fetching best popln for %s failed", pc.problemID)
 		return

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
@@ -36,7 +35,7 @@ func main() {
 		panic(err)
 	}
 
-	eventChannel := make(chan string, 5)
+	eventChannel := make(chan string)
 
 	sched.Init()
 
@@ -52,14 +51,12 @@ func main() {
 	problemStore, _ := model.NewProblemStore()
 
 
-	emigChan := make(chan *pcomms.MigrationMessage, 10)
+	emigChan := make(chan *pcomms.MigrationMessage)
 
 	cman := cm.NewMasterContainerManager(masterContext, problemStore, emigChan)
 
-	metricChan := make(chan *pcomms.DeviceMetricsMessage, 10)
-	immigChan := make(chan *pcomms.MigrationMessage, 10)
-
-
+	metricChan := make(chan *pcomms.DeviceMetricsMessage)
+	immigChan := make(chan *pcomms.MigrationMessage)
 
 	mc, err := vcomms.NewMasterComms(portD, metricChan, immigChan, sched, problemStore, eventChannel)
 	if err != nil {
@@ -127,14 +124,15 @@ func sendMetric(metricChan chan *pcomms.DeviceMetricsMessage, eventChannel chan 
 			return
 		}
 		sched.UpdateMetrics(m)
+		log.Debug().Caller().Msgf("updated metrics in scheduler")
 
-		jsonMsg, _ := json.Marshal(map[string]any{
-			"type": "WorkerMetrics",
-			"workerID": m.GetWorkerID(),
-			"cpuUtilPerc": m.GetCpuUtilPerc(),
-			"memUsageGB": m.GetMemUsageGB(),
-		})
-		eventChannel <- string(jsonMsg)
+		// jsonMsg, _ := json.Marshal(map[string]any{
+		// 	"type": "WorkerMetrics",
+		// 	"workerID": m.GetWorkerID(),
+		// 	"cpuUtilPerc": m.GetCpuUtilPerc(),
+		// 	"memUsageGB": m.GetMemUsageGB(),
+		// })
+		// eventChannel <- string(jsonMsg)
 	}
 }
 
@@ -165,9 +163,17 @@ func sendSchedule(master *vcomms.MasterComms, schedule scheduler.Schedule, sched
  	}
 }
 
+func sendMasterMsgAsync(master *vcomms.MasterComms, workerID string, msg *pcomms.MasterMessage) {
+		err := master.SendMasterMessage(workerID, msg)
+		if err != nil {
+			log.Err(err).Msgf("failed to send population to workerID %s", workerID)
+		}
+}
+
 func sendPopulation(master *vcomms.MasterComms, emigChan chan *pcomms.MigrationMessage) {
 	for {
 		mig, ok := <- emigChan
+		log.Debug().Msgf("removed from emigChan")
 		if !ok {
 			log.Error().Msgf("sendPopulation exiting")
 			return
@@ -177,12 +183,8 @@ func sendPopulation(master *vcomms.MasterComms, emigChan chan *pcomms.MigrationM
 				Migration: mig,
 			},
 		}
-
-		err := master.SendMasterMessage(mig.GetWorkerID(), &msg)
-		if err != nil {
-			log.Err(err).Msgf("failed to send population to workerID %s", mig.GetWorkerID())
-		}
-		time.Sleep(5*time.Second)
+		go sendMasterMsgAsync(master, mig.GetWorkerID(), &msg)
+		log.Info().Msgf("Queued send population for %s to %s:%d", mig.GetPopulation().GetProblemID(), mig.GetWorkerID(), mig.GetContainerID())
 	}
 }
 

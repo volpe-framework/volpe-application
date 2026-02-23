@@ -53,7 +53,7 @@ func main() {
 
 	volpeMaster := workerConfig.GeneralConfig.VolPEMaster
 
-	immigChan := make(chan *volpe.MigrationMessage, 10)
+	immigChan := make(chan *volpe.MigrationMessage)
 
 	if volpeMaster == "" {
 		log.Warn().Msgf("VolPE master not found in config, loading from env variable VOLPE_MASTER")
@@ -86,7 +86,7 @@ func main() {
 		log.Warn().Caller().Msgf("CPU count not found, using %d CPUs instead", cpuCount)
 	}
 
-	wEmigChan := make(chan *volpe.MigrationMessage, 10)
+	wEmigChan := make(chan *volpe.MigrationMessage)
 
 	wc, err := vcomms.NewWorkerComms(volpeMaster, workerID, memoryGB, cpuCount)
 	if err != nil {
@@ -105,7 +105,7 @@ func main() {
 	// metricsChan := make(chan *contman.ContainerMetrics, 5)
 	// go cm.StreamContainerMetrics(metricsChan, workerContext)
 
-	adjInstChan := make(chan *pcomms.AdjustInstancesMessage, 10)
+	adjInstChan := make(chan *pcomms.AdjustInstancesMessage)
 
 	go adjInstHandler(wc, adjInstChan, cm, problemStore)
 

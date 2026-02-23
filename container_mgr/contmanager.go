@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"runtime"
 	"sync"
+	"time"
 
 	"volpe-framework/comms/common"
 	ccoms "volpe-framework/comms/container"
@@ -93,18 +95,18 @@ func (cm *ContainerManager) hasProblem(problemID string) bool {
 
 func (cm *ContainerManager) lockMut() {
 	cm.pcMut.Lock()
-	// caller, _, _, ok := runtime.Caller(1)
-	// if ok {
-	// 	log.Debug().Msgf("Locked pcMut %s", runtime.FuncForPC(caller).Name())
-	// }
+	caller, _, _, ok := runtime.Caller(1)
+	if ok {
+		log.Debug().Msgf("Locked pcMut %s", runtime.FuncForPC(caller).Name())
+	}
 }
 
 func (cm *ContainerManager) unlockMut() {
 	cm.pcMut.Unlock()
-	// caller, _, _, ok := runtime.Caller(1)
-	// if ok {
-	// 	log.Debug().Msgf("Unocked pcMut %s", runtime.FuncForPC(caller).Name())
-	// }
+	caller, _, _, ok := runtime.Caller(1)
+	if ok {
+		log.Debug().Msgf("Unocked pcMut %s", runtime.FuncForPC(caller).Name())
+	}
 }
 
 // prepares the problem to be run
@@ -235,7 +237,10 @@ func (cm *ContainerManager) UntrackProblem(problemID string) error {
 // }
 
 func (cm *ContainerManager) incPopToPC(pop *common.Population, pc *ProblemContainer) error {
-	reply, err := pc.commsClient.InitFromSeedPopulation(context.Background(), pop)
+	ctx, cancel := context.WithTimeout(pc.containerContext, 5*time.Second)
+	defer cancel()
+
+	reply, err := pc.commsClient.InitFromSeedPopulation(ctx, pop)
 	if err != nil {
 		return err
 	}
@@ -267,8 +272,13 @@ func (cm *ContainerManager) IncorporatePopulation(mig *volpe.MigrationMessage) e
 				break
 			}
 			pc := problem.problemContainers[id]
+			log.Debug().Caller().Msgf("called incPopToPC")
+			defer log.Debug().Caller().Msgf("returned from incPopToPC")
 			return cm.incPopToPC(pop, pc)
 		} else {
+			log.Debug().Caller().Msgf("called incPopToPC")
+			defer log.Debug().Caller().Msgf("returned from incPopToPC")
+
 			return cm.incPopToPC(pop, problem.problemContainers[containerID])
 		}
 	} else {
@@ -278,21 +288,27 @@ func (cm *ContainerManager) IncorporatePopulation(mig *volpe.MigrationMessage) e
 			break
 		}
 
+		log.Debug().Caller().Msgf("called incPopToPC")
 		err :=  cm.incPopToPC(pop, problem.problemContainers[id])
 		if err != nil {
 			return err
 		}
+		defer log.Debug().Caller().Msgf("returned from incPopToPC")
+		log.Debug().Caller().Msgf("getting random subpop")
 		newPop, err := problem.problemContainers[id].GetRandomSubpopulation()
 		if err != nil {
 			return err
 		}
+		log.Debug().Caller().Msgf("got random subpop")
 		// send an emigration msg to the same container
 		migMsg := volpe.MigrationMessage{
 			Population: newPop,
 			WorkerID: mig.GetWorkerID(),
 			ContainerID: mig.GetContainerID(),
 		}
+		log.Debug().Caller().Msgf("pushing to emigChan")
 		cm.emigChan <- &migMsg
+		log.Debug().Caller().Msgf("pushed to emigChan")
 	}
 	return nil
 }

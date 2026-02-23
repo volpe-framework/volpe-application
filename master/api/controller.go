@@ -161,13 +161,13 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 		log.Err(err).Msgf("failed to add problem %s", problemID)
 		c.Status(500)
 	} else {
-		jsonMsg, _ := json.Marshal(map[string]any{
-			"type": "ProblemStarted",
-			"problemID": problemID,
-			"islands": problem.IslandCount,
-			"mem": problem.MemoryUsage,
-		})
-		va.eventStream <- string(jsonMsg)
+		// jsonMsg, _ := json.Marshal(map[string]any{
+		// 	"type": "ProblemStarted",
+		// 	"problemID": problemID,
+		// 	"islands": problem.IslandCount,
+		// 	"mem": problem.MemoryUsage,
+		// })
+		// va.eventStream <- string(jsonMsg)
 
 		c.Status(200)
 	}
@@ -175,14 +175,14 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 
 func (va *VolpeAPI) distributeResults() {
 	for {
-		event, ok := <- va.eventStream
-		if !ok {
-			log.Error().Msgf("eventStream channel was closed while reading")
-			return
-		}
-		for channel, _ := range(va.eventOutChannels) {
-			channel <- event
-		}
+		// event, ok := <- va.eventStream
+		// if !ok {
+		// 	log.Error().Msgf("eventStream channel was closed while reading")
+		// 	return
+		// }
+		// for channel, _ := range(va.eventOutChannels) {
+		// 	channel <- event
+		// }
 	}
 }
 
@@ -239,11 +239,11 @@ func (va *VolpeAPI) StreamResults (c *gin.Context) {
 func (va *VolpeAPI) AbortProblem(c *gin.Context) {
 	problemID := c.Param("id")
 
-	jsonMsg, _ := json.Marshal(map[string]any{
-		"type": "ProblemStopped",
-		"problemID": problemID,
-	})
-	va.eventStream <- string(jsonMsg)
+	// jsonMsg, _ := json.Marshal(map[string]any{
+	// 	"type": "ProblemStopped",
+	// 	"problemID": problemID,
+	// })
+	// va.eventStream <- string(jsonMsg)
 
 	va.sched.RemoveProblem(problemID)
 	va.contman.UntrackProblem(problemID)
@@ -256,7 +256,7 @@ func (va *VolpeAPI) EventStream(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 	c.Writer.Flush()
 
-	channel := make(chan string, 5)
+	channel := make(chan string)
 	va.eventOutChannels[channel] = true
 
 	// TODO: Race condition here?

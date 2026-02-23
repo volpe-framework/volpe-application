@@ -112,6 +112,7 @@ func (wc *WorkerComms) SendSubPopulation(migrationMsg *vc.MigrationMessage) erro
 	if err != nil {
 		log.Err(err).Caller().Msgf("sending subpop for problemID %s containerID %d", migrationMsg.GetPopulation().GetProblemID(), migrationMsg.GetContainerID())
 	}
+	log.Debug().Msgf("Sent subpopulation of size %d for problem %s from container %d", len(migrationMsg.GetPopulation().GetMembers()), migrationMsg.GetPopulation().GetProblemID(), migrationMsg.GetContainerID())
 	return err
 }
 

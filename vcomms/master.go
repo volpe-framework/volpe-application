@@ -2,7 +2,6 @@ package volpe
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -87,15 +86,16 @@ func mcsStreamHandlerThread(
 			}
 			if result.GetMetrics() != nil {
 				log.Info().Caller().Msgf("workerID %s received metrics", workerID)
-				jsonMsg, _ := json.Marshal(map[string]any{
-					"type": "WorkerMetrics",
-					"workerID": workerID,
-					"cpu": result.GetMetrics().GetCpuUtilPerc(),
-					"mem": result.GetMetrics().GetMemUsageGB(),
-				})
-				eventStream <- string(jsonMsg)
-
+				// jsonMsg, _ := json.Marshal(map[string]any{
+				// 	"type": "WorkerMetrics",
+				// 	"workerID": workerID,
+				// 	"cpu": result.GetMetrics().GetCpuUtilPerc(),
+				// 	"mem": result.GetMetrics().GetMemUsageGB(),
+				// })
+				// eventStream <- string(jsonMsg)
+				log.Debug().Caller().Msgf("adding to metricChan")
 				metricChan <- result.GetMetrics()
+				log.Debug().Caller().Msgf("added to metricChan")
 			} else if result.GetMigration() != nil {
 				mig := result.GetMigration()
 				pop := mig.GetPopulation()
@@ -108,16 +108,17 @@ func mcsStreamHandlerThread(
 					popSize += 1
 				}
 
-				jsonMsg, _ := json.Marshal(map[string]any{
-					"type": "ReceivedWorkerPopulation",
-					"workerID": workerID,
-					"problemID": pop.GetProblemID(),
-					"avgFitness": sumFitness/float64(popSize),
-					"popSize": popSize,
-				})
-				eventStream <- string(jsonMsg)
-
+				// jsonMsg, _ := json.Marshal(map[string]any{
+				// 	"type": "ReceivedWorkerPopulation",
+				// 	"workerID": workerID,
+				// 	"problemID": pop.GetProblemID(),
+				// 	"avgFitness": sumFitness/float64(popSize),
+				// 	"popSize": popSize,
+				// })
+				// eventStream <- string(jsonMsg)
+				log.Debug().Caller().Msgf("adding to immigChan")
 				immigChan <- mig
+				log.Debug().Caller().Msgf("added to immigChan")
 			} else if result.GetHello() != nil {
 				log.Warn().Caller().Msg("got unexpected HelloMsg from stream for " + workerID)
 			}
@@ -129,13 +130,13 @@ func mcsStreamHandlerThread(
 			adjInst :=  result.GetAdjInst()
 			emigMsg := result.GetMigration()
 			if adjInst != nil {
-				jsonMsg, _ := json.Marshal(map[string]any{
-					"type": "SetWorkerInstances",
-					"problemID": adjInst.GetProblemID(),
-					"workerID": workerID,
-					"instances": adjInst.GetInstances(),
-				})
-				eventStream <- string(jsonMsg)
+				// jsonMsg, _ := json.Marshal(map[string]any{
+				// 	"type": "SetWorkerInstances",
+				// 	"problemID": adjInst.GetProblemID(),
+				// 	"workerID": workerID,
+				// 	"instances": adjInst.GetInstances(),
+				// })
+				// eventStream <- string(jsonMsg)
 			} else if emigMsg != nil {
 				fitnessSum := float32(0.0)
 				indCount := 0
@@ -143,21 +144,22 @@ func mcsStreamHandlerThread(
 					fitnessSum += float32(ind.GetFitness())
 					indCount += 1
 				}
-				jsonMsg, _ := json.Marshal(map[string]any{
-					"type": "SentMasterPopulation",
-					"workerID": workerID,
-					"containerID": emigMsg.GetContainerID(),
-					"problemID": emigMsg.GetPopulation().GetProblemID(),
-					"populationSize": indCount,
-					"avgFitness": fitnessSum / float32(indCount),
-				})
-				eventStream <- string(jsonMsg)
+				// jsonMsg, _ := json.Marshal(map[string]any{
+				// 	"type": "SentMasterPopulation",
+				// 	"workerID": workerID,
+				// 	"containerID": emigMsg.GetContainerID(),
+				// 	"problemID": emigMsg.GetPopulation().GetProblemID(),
+				// 	"populationSize": indCount,
+				// 	"avgFitness": fitnessSum / float32(indCount),
+				// })
+				// eventStream <- string(jsonMsg)
 			} else {
 				log.Error().Msgf("message sent from master was neither adjust instances nor send popln. ")
 			}
 
 
 			err := stream.Send(result)
+			log.Debug().Caller().Msgf("sent master msg to workerID %s", workerID)
 			if err != nil {
 				log.Err(err).Caller().Msgf("")
 				// TODO: inform that stream no longer works
@@ -202,23 +204,23 @@ func (mcs *masterCommsServer) StartStreams(stream grpc.BidiStreamingServer[vc.Wo
 		MemoryGB: workerHelloMsg.GetMemoryGB(),
 	})
 
-	jsonMsg, _ := json.Marshal(map[string]any{
-		"type": "WorkerJoined",
-		"workerID": workerID,
-		"cpuCount": workerHelloMsg.GetCpuCount(),
-		"mem": workerHelloMsg.GetMemoryGB(),
-	})
-	mcs.eventStream <- string(jsonMsg)
+	// jsonMsg, _ := json.Marshal(map[string]any{
+	// 	"type": "WorkerJoined",
+	// 	"workerID": workerID,
+	// 	"cpuCount": workerHelloMsg.GetCpuCount(),
+	// 	"mem": workerHelloMsg.GetMemoryGB(),
+	// })
+	// mcs.eventStream <- string(jsonMsg)
 
 	mcsStreamHandlerThread(workerID, stream, masterSendChan, mcs.metricChan, mcs.immigChan, mcs.eventStream)
 
 	log.Info().Msgf("workerID %s left", workerID)
 
-	jsonMsg, _ = json.Marshal(map[string]string{
-		"type": "WorkerLeft",
-		"workerID": workerID,
-	})
-	mcs.eventStream <- string(jsonMsg)
+	// jsonMsg, _ = json.Marshal(map[string]string{
+	// 	"type": "WorkerLeft",
+	// 	"workerID": workerID,
+	// })
+	// mcs.eventStream <- string(jsonMsg)
 
 	mcs.sched.RemoveWorker(workerID)
 	return nil
@@ -319,5 +321,6 @@ func (mc *MasterComms) SendMasterMessage(workerID string, msg *vc.MasterMessage)
 		return errors.New("unknown workerID")
 	}
 	mcchan <- msg
+	log.Debug().Caller().Msgf("added master msg to mcchan")
 	return nil
 }
