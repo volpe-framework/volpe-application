@@ -388,7 +388,10 @@ func (cm *ContainerManager) RegisterResultListener(problemID string, channel cha
 		return &UnknownProblemError{ProblemID: problemID}
 
 	}
-	problem.problemContainers[0].RegisterResultChannel(channel)
+	for _, pc := range(problem.problemContainers) {
+		pc.RegisterResultChannel(channel)
+		break
+	}
 	return nil
 }
 
