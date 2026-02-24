@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 	pcomms "volpe-framework/comms/volpe"
-	vcomms "volpe-framework/vcomms"
 	cm "volpe-framework/container_mgr"
 
 	"volpe-framework/scheduler"
@@ -58,7 +57,7 @@ func main() {
 	metricChan := make(chan *pcomms.DeviceMetricsMessage)
 	immigChan := make(chan *pcomms.MigrationMessage)
 
-	mc, err := vcomms.NewMasterComms(portD, metricChan, immigChan, sched, problemStore, eventChannel)
+	mc, err := pcomms.NewMasterComms(portD, metricChan, immigChan, sched, problemStore, eventChannel)
 	if err != nil {
 		log.Fatal().Caller().Msgf("error initializing master comms: %s", err.Error())
 		panic(err)
@@ -136,7 +135,7 @@ func sendMetric(metricChan chan *pcomms.DeviceMetricsMessage, eventChannel chan 
 	}
 }
 
-func sendSchedule(master *vcomms.MasterComms, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
+func sendSchedule(master *pcomms.MasterComms, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
 	for {
 		schedMutex.Lock()
 		schedule.Apply(func (workerID string, problemID string, val int32) {
@@ -163,14 +162,14 @@ func sendSchedule(master *vcomms.MasterComms, schedule scheduler.Schedule, sched
  	}
 }
 
-func sendMasterMsgAsync(master *vcomms.MasterComms, workerID string, msg *pcomms.MasterMessage) {
+func sendMasterMsgAsync(master *pcomms.MasterComms, workerID string, msg *pcomms.MasterMessage) {
 		err := master.SendMasterMessage(workerID, msg)
 		if err != nil {
 			log.Err(err).Msgf("failed to send population to workerID %s", workerID)
 		}
 }
 
-func sendPopulation(master *vcomms.MasterComms, emigChan chan *pcomms.MigrationMessage) {
+func sendPopulation(master *pcomms.MasterComms, emigChan chan *pcomms.MigrationMessage) {
 	for {
 		mig, ok := <- emigChan
 		log.Debug().Msgf("removed from emigChan")

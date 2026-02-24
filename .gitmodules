@@ -1,0 +1,3 @@
+[submodule "protobuf"]
+	path = volpe-protobuf
+	url = https://github.com/volpe-framework/volpe-protobuf.git

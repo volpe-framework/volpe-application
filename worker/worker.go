@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"volpe-framework/comms/volpe"
-	vcomms "volpe-framework/vcomms"
 	pcomms "volpe-framework/comms/volpe"
 	contman "volpe-framework/container_mgr"
 	"volpe-framework/model"
@@ -88,7 +87,7 @@ func main() {
 
 	wEmigChan := make(chan *volpe.MigrationMessage)
 
-	wc, err := vcomms.NewWorkerComms(volpeMaster, workerID, memoryGB, cpuCount)
+	wc, err := pcomms.NewWorkerComms(volpeMaster, workerID, memoryGB, cpuCount)
 	if err != nil {
 		log.Fatal().Caller().Msgf("could not create workercomms: %s", err.Error())
 		panic(err)
@@ -114,7 +113,7 @@ func main() {
 	wc.HandleStreams(adjInstChan, immigChan)
 }
 
-func emigrationHandler(wc *vcomms.WorkerComms, wEmigChan chan *volpe.MigrationMessage) {
+func emigrationHandler(wc *pcomms.WorkerComms, wEmigChan chan *volpe.MigrationMessage) {
 	for {
 		pop, ok := <- wEmigChan
 		if !ok {
@@ -140,7 +139,7 @@ func immigrationHandler(cm *contman.ContainerManager, immigChan chan *volpe.Migr
 }
 
 // TODO: rewrite handler based on any aggregation of metrics needed
-// func workerMetricsHandler(metricChan chan *contman.ContainerMetrics, wc *vcomms.WorkerComms) {
+// func workerMetricsHandler(metricChan chan *contman.ContainerMetrics, wc *pcomms.WorkerComms) {
 // 	for {
 // 		metrics, ok := <- metricChan 
 // 		if !ok {
@@ -151,7 +150,7 @@ func immigrationHandler(cm *contman.ContainerManager, immigChan chan *volpe.Migr
 // 	}
 // }
 
-func deviceMetricsExporter(ctx context.Context, wc *vcomms.WorkerComms) {
+func deviceMetricsExporter(ctx context.Context, wc *pcomms.WorkerComms) {
 	memStats, err := memorystat.Get()
 	memGB := float32(0)
 	if err != nil {
@@ -192,7 +191,7 @@ func deviceMetricsExporter(ctx context.Context, wc *vcomms.WorkerComms) {
 	log.Info().Msgf("Stopping device metrics export")
 }
 
-func adjInstHandler(wc *vcomms.WorkerComms, adjInstChan chan *pcomms.AdjustInstancesMessage, cm *contman.ContainerManager, probStore *model.ProblemStore) {
+func adjInstHandler(wc *pcomms.WorkerComms, adjInstChan chan *pcomms.AdjustInstancesMessage, cm *contman.ContainerManager, probStore *model.ProblemStore) {
 	for {
 		adjInst, ok := <- adjInstChan
 		if !ok {
