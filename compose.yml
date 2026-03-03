@@ -1,0 +1,41 @@
+services:
+  master:
+    build: .
+    ports:
+      - "8080:8080"
+      - "8000:8000"
+    security_opt:
+      - label=disable
+    entrypoint: "./master"
+    devices:
+      - /dev/fuse:/dev/fuse
+    environment:
+      - CONTAINER_HOST=unix:///tmp/storage-run-1000/podman/podman.sock
+  worker1:
+    build: .
+    security_opt:
+      - label=disable
+    depends_on:
+      - master
+    volumes:
+      - ./compose_configs/worker1.ini:/home/podman/config.ini
+    entrypoint: "./worker -config-path ./config.ini"
+    devices:
+      - /dev/fuse:/dev/fuse
+    environment:
+      - CONTAINER_HOST=unix:///tmp/storage-run-1000/podman/podman.sock
+
+  worker2:
+    build: .
+    security_opt:
+      - label=disable
+    depends_on:
+      - master
+    volumes:
+      - ./compose_configs/worker2.ini:/home/podman/config.ini
+    entrypoint: "./worker -config-path ./config.ini"
+    devices:
+      - /dev/fuse:/dev/fuse
+    environment:
+      - CONTAINER_HOST=unix:///tmp/storage-run-1000/podman/podman.sock
+

@@ -1,0 +1,6 @@
+**/.venv/
+**/__pycache__/
+Dockerfile
+.git/
+.dockerignore
+compose_configs/
