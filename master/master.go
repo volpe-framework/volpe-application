@@ -78,9 +78,7 @@ func main() {
 
 	go recvPopulation(cman, immigChan)
 
-	go calcSchedule(sched, schedule, &schedMutex)
-
-	go sendSchedule(mc, schedule, &schedMutex)
+	go sendSchedule(sched, schedule, &schedMutex, mc)
 
 	go sendPopulation(mc, emigChan)
 
@@ -132,33 +130,6 @@ func sendMetric(metricChan chan *pcomms.DeviceMetricsMessage, eventChannel chan 
 	}
 }
 
-func sendSchedule(master *pcomms.MasterComms, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
-	for {
-		schedMutex.Lock()
-		schedule.Apply(func(workerID string, problemID string, val int32) {
-			adjinst := &pcomms.AdjustInstancesMessage{
-				ProblemID: problemID,
-				Instances: val,
-			}
-			msg := pcomms.MasterMessage{
-				Message: &pcomms.MasterMessage_AdjInst{
-					AdjInst: adjinst,
-				},
-			}
-			log.Debug().Caller().Msgf("worker %s problem %s instances %d", workerID, problemID, val)
-			err := master.SendMasterMessage(workerID, &msg)
-			if err != nil {
-				log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())
-				return
-			}
-		})
-
-		schedMutex.Unlock()
-		log.Debug().Msg("Sent schedule")
-		time.Sleep(5 * time.Second)
-	}
-}
-
 func sendMasterMsgAsync(master *pcomms.MasterComms, workerID string, msg *pcomms.MasterMessage) {
 	err := master.SendMasterMessage(workerID, msg)
 	if err != nil {
@@ -184,16 +155,40 @@ func sendPopulation(master *pcomms.MasterComms, emigChan chan *pcomms.MigrationM
 	}
 }
 
-func calcSchedule(sched scheduler.Scheduler, schedule scheduler.Schedule, schedMutex *sync.Mutex) {
-	for {
+func updateAndSendSchedOnce(sched scheduler.Scheduler, schedule scheduler.Schedule, schedMutex *sync.Mutex, master *pcomms.MasterComms) {
 		schedMutex.Lock()
+		defer schedMutex.Unlock()
+
 		err := sched.FillSchedule(schedule)
 		if err != nil {
 			log.Error().Caller().Msgf("error filling sched: %s", err.Error())
 			return
 		}
-		log.Info().Caller().Msg("Modified schedule")
-		schedMutex.Unlock()
+		log.Info().Caller().Msg("Filled schedule")
+
+		schedule.Apply(func(workerID string, problemID string, val int32) {
+			adjinst := &pcomms.AdjustInstancesMessage{
+				ProblemID: problemID,
+				Instances: val,
+			}
+			msg := pcomms.MasterMessage{
+				Message: &pcomms.MasterMessage_AdjInst{
+					AdjInst: adjinst,
+				},
+			}
+			log.Debug().Caller().Msgf("worker %s problem %s instances %d", workerID, problemID, val)
+			err := master.SendMasterMessage(workerID, &msg)
+			if err != nil {
+				log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())
+				return
+			}
+		})
+
+}
+
+func sendSchedule(sched scheduler.Scheduler, schedule scheduler.Schedule, schedMutex *sync.Mutex, master *pcomms.MasterComms) {
+	for {
+		updateAndSendSchedOnce(sched, schedule, schedMutex, master)
 		time.Sleep(5 * time.Second)
 	}
 }
