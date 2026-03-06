@@ -19,6 +19,7 @@ func RunAPI(port int, api *VolpeAPI) {
 	r.PUT("/problems/:id/start", api.StartProblem)
 	r.Any("/problems/:id/abort", api.AbortProblem)
 	r.GET("/eventStream", api.EventStream)
+	r.GET("/problems", api.ListProblems)
 
 	r.Static("/static", "public/")
 

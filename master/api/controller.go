@@ -120,6 +120,21 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 	log.Info().Caller().Msgf("registered image %s", problemID)
 }
 
+func (va *VolpeAPI) ListProblems(c *gin.Context) {
+	type Problem struct {
+		ProblemID string `json:"problemID"`
+		Running bool `json:"running"`
+	}
+	problemNames := va.probstore.ListProblems()
+	log.Debug().Msgf("Found %d problems", len(problemNames))
+	problems := make([]Problem, len(problemNames))
+	for i := 0; i < len(problemNames); i += 1 {
+		problems[i].ProblemID = problemNames[i]
+		problems[i].Running = va.contman.HasProblem(problemNames[i])
+	}
+	c.JSON(200, map[string]any{"problems": problems})
+}
+
 func (va *VolpeAPI) DeleteProblem(c *gin.Context) {
 	problemID := c.Param("id")
 
