@@ -61,6 +61,9 @@ func main() {
 		panic(err)
 	}
 
+	schedule := make(scheduler.Schedule)
+	var schedMutex sync.Mutex
+
 	api, err := apilib.NewVolpeAPI(problemStore, sched, cman, eventChannel)
 	if err != nil {
 		panic(err)
@@ -68,9 +71,6 @@ func main() {
 
 	apilib.RunAPI(8000, api)
 	log.Info().Caller().Msgf("master REST API listening on port %d", 8000)
-
-	schedule := make(scheduler.Schedule)
-	var schedMutex sync.Mutex
 
 	go sendMetric(metricChan, eventChannel, sched)
 
@@ -156,33 +156,33 @@ func sendPopulation(master *pcomms.MasterComms, emigChan chan *pcomms.MigrationM
 }
 
 func updateAndSendSchedOnce(sched scheduler.Scheduler, schedule scheduler.Schedule, schedMutex *sync.Mutex, master *pcomms.MasterComms) {
-		schedMutex.Lock()
-		defer schedMutex.Unlock()
+	schedMutex.Lock()
+	defer schedMutex.Unlock()
 
-		err := sched.FillSchedule(schedule)
+	err := sched.FillSchedule(schedule)
+	if err != nil {
+		log.Error().Caller().Msgf("error filling sched: %s", err.Error())
+		return
+	}
+	log.Info().Caller().Msg("Filled schedule")
+
+	schedule.Apply(func(workerID string, problemID string, val int32) {
+		adjinst := &pcomms.AdjustInstancesMessage{
+			ProblemID: problemID,
+			Instances: val,
+		}
+		msg := pcomms.MasterMessage{
+			Message: &pcomms.MasterMessage_AdjInst{
+				AdjInst: adjinst,
+			},
+		}
+		log.Debug().Caller().Msgf("worker %s problem %s instances %d", workerID, problemID, val)
+		err := master.SendMasterMessage(workerID, &msg)
 		if err != nil {
-			log.Error().Caller().Msgf("error filling sched: %s", err.Error())
+			log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())
 			return
 		}
-		log.Info().Caller().Msg("Filled schedule")
-
-		schedule.Apply(func(workerID string, problemID string, val int32) {
-			adjinst := &pcomms.AdjustInstancesMessage{
-				ProblemID: problemID,
-				Instances: val,
-			}
-			msg := pcomms.MasterMessage{
-				Message: &pcomms.MasterMessage_AdjInst{
-					AdjInst: adjinst,
-				},
-			}
-			log.Debug().Caller().Msgf("worker %s problem %s instances %d", workerID, problemID, val)
-			err := master.SendMasterMessage(workerID, &msg)
-			if err != nil {
-				log.Error().Caller().Msgf("error pushing subpop wID %s pID %s: %s", workerID, problemID, err.Error())
-				return
-			}
-		})
+	})
 
 }
 

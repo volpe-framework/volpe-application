@@ -11,17 +11,16 @@ import (
 )
 
 type PrelimScheduler struct {
-	problems []types.Problem
-	workers  []types.Worker
+	problems   []types.Problem
+	workers    map[string]*Worker
 	removeList []string
-	mut sync.Mutex
+	mut        sync.Mutex
 }
-
 
 func NewPrelimScheduler() (*PrelimScheduler, error) {
 	sched := &PrelimScheduler{}
 	sched.problems = make([]types.Problem, 0)
-	sched.workers = make([]types.Worker, 0)
+	sched.workers = make(map[string]*Worker)
 	return sched, nil
 }
 
@@ -31,30 +30,32 @@ func (ss *PrelimScheduler) AddWorker(worker types.Worker) {
 	ss.mut.Lock()
 	defer ss.mut.Unlock()
 
-	for _, w := range ss.workers {
-		if worker.WorkerID == w.WorkerID {
-			return
-		}
+	ss.workers[worker.WorkerID] = &Worker{
+		WorkerID:      worker.WorkerID,
+		CpuCount:      int(worker.CpuCount),
+		MemoryGB:      worker.MemoryGB,
+		Schedule:      make(map[string]int),
+		CpuUtilPerc:   0,
+		MemoryUsageGB: 0,
 	}
-
-	ss.workers = append(ss.workers, worker)
 }
 
 func (ss *PrelimScheduler) UpdateMetrics(metrics *vcomms.DeviceMetricsMessage) {
 	// TODO: apply metrics update
 	//log.Warn().Caller().Msgf("skipping metrics update for static scheduler")
+	ss.mut.Lock()
+	worker := ss.workers[metrics.WorkerID]
+	ss.mut.Unlock()
+
+	worker.MemoryUsageGB = metrics.MemUsageGB
+	worker.CpuUtilPerc = metrics.CpuUtilPerc
 }
 
 func (ss *PrelimScheduler) RemoveWorker(worker string) {
 	ss.mut.Lock()
 	defer ss.mut.Unlock()
 
-	workerInd := slices.IndexFunc(ss.workers, func (w types.Worker) bool { return w.WorkerID == worker } )
-	if workerInd == -1 {
-		return
-	}
-	
-	ss.workers = slices.Delete(ss.workers, workerInd, workerInd+1)
+	delete(ss.workers, worker)
 }
 
 func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
@@ -63,7 +64,7 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 	ss.mut.Lock()
 	defer ss.mut.Unlock()
 
-	slices.SortFunc(ss.problems, func(p1 types.Problem, p2 types.Problem) int { 
+	slices.SortFunc(ss.problems, func(p1 types.Problem, p2 types.Problem) int {
 		if p2.MemoryUsage > p1.MemoryUsage {
 			return 1
 		} else {
@@ -71,7 +72,17 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 		}
 	})
 
-	slices.SortFunc(ss.workers, func(w1 types.Worker, w2 types.Worker) int { 
+	workers := make([]types.Worker, len(ss.workers))
+	i := 0
+	for _, worker := range ss.workers {
+		workers[i] = types.Worker{
+			WorkerID: worker.WorkerID,
+			CpuCount: int32(worker.CpuCount),
+			MemoryGB: worker.MemoryGB,
+		}
+	}
+
+	slices.SortFunc(workers, func(w1 types.Worker, w2 types.Worker) int {
 		if w1.MemoryGB > w2.MemoryGB {
 			return -1
 		} else {
@@ -93,10 +104,10 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 	}
 
 	changeCount := 1
-	
+
 	for changeCount > 0 { // doneProblems < len(ss.problems) && doneWorkers < len(ss.workers) {
 		changeCount = 0
-		for _, w := range ss.workers {
+		for _, w := range workers {
 			remainingMem := workersRemainingMem[w.WorkerID]
 			if workersRemainingMem[w.WorkerID] <= 0 {
 				continue
@@ -107,7 +118,9 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 					log.Warn().Msgf("Invalid memory %f GB for problem %s", p.MemoryUsage, p.ProblemID)
 				}
 				if remainingMem >= pMem {
-					sched.Set(w.WorkerID, p.ProblemID, sched.Get(w.WorkerID, p.ProblemID)+1) 
+					newVal := sched.Get(w.WorkerID, p.ProblemID) + 1
+					sched.Set(w.WorkerID, p.ProblemID, newVal)
+					ss.workers[w.WorkerID].Schedule[p.ProblemID] = int(newVal)
 					remainingMem -= pMem
 					changeCount += 1
 					// log.Info().Msgf("Added problem %s to worker %s", p.ProblemID, w.WorkerID)
@@ -121,6 +134,7 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 	for _, p := range ss.removeList {
 		for _, w := range ss.workers {
 			sched.Set(w.WorkerID, p, 0)
+			delete(ss.workers[w.WorkerID].Schedule, p)
 			log.Info().Msgf("Removing problem %s on scheduler for worker %s", p, w.WorkerID)
 		}
 	}
@@ -130,10 +144,33 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 	return nil
 }
 
+func (ss *PrelimScheduler) GetWorkers() []Worker {
+	ss.mut.Lock()
+	defer ss.mut.Unlock()
+
+	workers := make([]Worker, len(ss.workers))
+	i := 0
+	for wID, worker := range ss.workers {
+		schedCopy := make(map[string]int)
+		for k, v := range worker.Schedule {
+			schedCopy[k] = v
+		}
+		workers[i] = Worker{
+			WorkerID:      wID,
+			CpuCount:      worker.CpuCount,
+			MemoryGB:      worker.MemoryGB,
+			Schedule:      schedCopy,
+			CpuUtilPerc:   worker.CpuUtilPerc,
+			MemoryUsageGB: worker.MemoryUsageGB,
+		}
+	}
+	return workers
+}
+
 func (ss *PrelimScheduler) RemoveProblem(problemID string) {
 	ss.mut.Lock()
 	defer ss.mut.Unlock()
-	index := slices.IndexFunc(ss.problems, func (x types.Problem) bool { return x.ProblemID == problemID })
+	index := slices.IndexFunc(ss.problems, func(x types.Problem) bool { return x.ProblemID == problemID })
 	if index == -1 {
 		return
 	}
@@ -141,7 +178,7 @@ func (ss *PrelimScheduler) RemoveProblem(problemID string) {
 	ss.removeList = append(ss.removeList, problemID)
 }
 
-func (ss *PrelimScheduler) AddProblem(problem types.Problem)  {
+func (ss *PrelimScheduler) AddProblem(problem types.Problem) {
 	ss.mut.Lock()
 	defer ss.mut.Unlock()
 

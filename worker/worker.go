@@ -75,7 +75,7 @@ func main() {
 	memoryGB := workerConfig.ResourceConfig.MemoryGB
 	if memoryGB == 0 {
 		stats, _ := memorystat.Get()
-		memoryGB = float32(stats.Total)/(1024*1024*1024)
+		memoryGB = float32(stats.Total) / (1024 * 1024 * 1024)
 		log.Warn().Caller().Msgf("Memory allocation not found, using %f GB instead", memoryGB)
 	}
 
@@ -109,13 +109,13 @@ func main() {
 	go adjInstHandler(wc, adjInstChan, cm, problemStore)
 
 	go immigrationHandler(cm, immigChan)
-	
+
 	wc.HandleStreams(adjInstChan, immigChan)
 }
 
 func emigrationHandler(wc *pcomms.WorkerComms, wEmigChan chan *volpe.MigrationMessage) {
 	for {
-		pop, ok := <- wEmigChan
+		pop, ok := <-wEmigChan
 		if !ok {
 			log.Error().Msgf("Exiting emigration handler")
 			return
@@ -127,7 +127,7 @@ func emigrationHandler(wc *pcomms.WorkerComms, wEmigChan chan *volpe.MigrationMe
 
 func immigrationHandler(cm *contman.ContainerManager, immigChan chan *volpe.MigrationMessage) {
 	for {
-		pop, ok := <- immigChan
+		pop, ok := <-immigChan
 		if !ok {
 			log.Error().Msgf("Exiting immigration handler")
 		}
@@ -141,7 +141,7 @@ func immigrationHandler(cm *contman.ContainerManager, immigChan chan *volpe.Migr
 // TODO: rewrite handler based on any aggregation of metrics needed
 // func workerMetricsHandler(metricChan chan *contman.ContainerMetrics, wc *pcomms.WorkerComms) {
 // 	for {
-// 		metrics, ok := <- metricChan 
+// 		metrics, ok := <- metricChan
 // 		if !ok {
 // 			log.Info().Msgf("Metrics channel closed, exiting metrics handler")
 // 			return
@@ -156,7 +156,7 @@ func deviceMetricsExporter(ctx context.Context, wc *pcomms.WorkerComms) {
 	if err != nil {
 		log.Err(err).Msgf("Failed fetching memory stats")
 	} else {
-		memGB = float32(memStats.Used)/(1024*1024*1024)
+		memGB = float32(memStats.Used) / (1024 * 1024 * 1024)
 	}
 
 	loadStats, err := loadstat.Get()
@@ -173,7 +173,7 @@ func deviceMetricsExporter(ctx context.Context, wc *pcomms.WorkerComms) {
 	if err != nil {
 		log.Err(err).Msgf("Failed to fetch network stats")
 	} else {
-		for _, netStat := range(netStats) {
+		for _, netStat := range netStats {
 			netRxBytes += uint32(netStat.RxBytes)
 			netTxBytes += uint32(netStat.TxBytes)
 		}
@@ -182,23 +182,24 @@ func deviceMetricsExporter(ctx context.Context, wc *pcomms.WorkerComms) {
 	for ctx.Err() == nil {
 		wc.SendDeviceMetrics(&pcomms.DeviceMetricsMessage{
 			CpuUtilPerc: cpuPerc,
-			MemUsageGB: memGB,
-			NetTxBytes: netTxBytes,
-			NetRxBytes: netRxBytes,
+			MemUsageGB:  memGB,
+			NetTxBytes:  netTxBytes,
+			NetRxBytes:  netRxBytes,
 		})
-		time.Sleep(5*time.Second)
+		time.Sleep(5 * time.Second)
 	}
 	log.Info().Msgf("Stopping device metrics export")
 }
 
 func adjInstHandler(wc *pcomms.WorkerComms, adjInstChan chan *pcomms.AdjustInstancesMessage, cm *contman.ContainerManager, probStore *model.ProblemStore) {
 	for {
-		adjInst, ok := <- adjInstChan
+		adjInst, ok := <-adjInstChan
 		if !ok {
 			log.Info().Caller().Msg("adjPopChan closed")
 			return
 		}
 		problemID := adjInst.GetProblemID()
+		log.Debug().Msgf("got adj inst msg for problem %s, instances %d")
 
 		_, ok = probStore.GetFileName(problemID)
 		if !ok {

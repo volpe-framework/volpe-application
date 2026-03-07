@@ -31,3 +31,14 @@ func (s Schedule) Reset() {
 		delete(s, k)
 	}
 }
+
+func (s Schedule) ToDictOfDicts() map[string]map[string]int {
+	resultMap := make(map[string]map[string]int)
+	s.Apply(func (w string, p string, val int32) {
+		if resultMap[w] == nil {
+			resultMap[w] = make(map[string]int)
+		}
+		resultMap[w][p] = int(val)
+	})
+	return resultMap
+}

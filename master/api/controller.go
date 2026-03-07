@@ -22,19 +22,19 @@ import (
 )
 
 type VolpeAPI struct {
-	probstore *model.ProblemStore
-	sched scheduler.Scheduler
-	contman *contman.ContainerManager
-	eventStream chan string
+	probstore        *model.ProblemStore
+	sched            scheduler.Scheduler
+	contman          *contman.ContainerManager
+	eventStream      chan string
 	eventOutChannels map[chan string]bool
 }
 
 func NewVolpeAPI(ps *model.ProblemStore, sched scheduler.Scheduler, contman *contman.ContainerManager, eventStream chan string) (*VolpeAPI, error) {
 	api := &VolpeAPI{
-		probstore: ps,
-		sched: sched,
-		contman: contman,
-		eventStream: eventStream,
+		probstore:        ps,
+		sched:            sched,
+		contman:          contman,
+		eventStream:      eventStream,
 		eventOutChannels: make(map[chan string]bool),
 	}
 	go api.distributeResults()
@@ -50,7 +50,7 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 
 	req := c.Request
 
-	err := req.ParseMultipartForm(32<<20)
+	err := req.ParseMultipartForm(32 << 20)
 	if err != nil {
 		c.AbortWithStatus(400)
 		log.Err(err).Caller().Send()
@@ -69,11 +69,11 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 	}
 
 	type imageMetaData struct {
-		ProblemID string `json:"problemID"`
-		Memory float32 `json:"memory"`
-		TargetInstances int32 `json:"targetInstances"`
-		MigrationFrequency int32 `json:"migrationFrequency"`
-		MigrationSize int32 `json:"migrationSize"`
+		ProblemID          string  `json:"problemID"`
+		Memory             float32 `json:"memory"`
+		TargetInstances    int32   `json:"targetInstances"`
+		MigrationFrequency int32   `json:"migrationFrequency"`
+		MigrationSize      int32   `json:"migrationSize"`
 	}
 
 	metaData := imageMetaData{}
@@ -90,7 +90,7 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 		c.AbortWithStatusJSON(400, FailedResponse("metadata inconsistent with problemID"))
 		return
 	}
-	
+
 	log.Info().Msgf("creating problemID %s", metaDataStrings[0])
 
 	fname := metaData.ProblemID + ".tar"
@@ -109,11 +109,11 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 
 	// TODO: proper file names and path for image
 	va.probstore.NewProblem(types.Problem{
-		ProblemID: problemID,
-		MemoryUsage: metaData.Memory,
-		IslandCount: metaData.TargetInstances,
+		ProblemID:          problemID,
+		MemoryUsage:        metaData.Memory,
+		IslandCount:        metaData.TargetInstances,
 		MigrationFrequency: metaData.MigrationFrequency,
-		MigrationSize: metaData.MigrationSize,
+		MigrationSize:      metaData.MigrationSize,
 	})
 	va.probstore.RegisterImage(problemID, fname)
 
@@ -123,7 +123,7 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 func (va *VolpeAPI) ListProblems(c *gin.Context) {
 	type Problem struct {
 		ProblemID string `json:"problemID"`
-		Running bool `json:"running"`
+		Running   bool   `json:"running"`
 	}
 	problemNames := va.probstore.ListProblems()
 	log.Debug().Msgf("Found %d problems", len(problemNames))
@@ -154,13 +154,13 @@ func (va *VolpeAPI) GetProblem(c *gin.Context) {
 	}
 
 	var problemData struct {
-		ProblemID string `json:"problemID"`
-		MigrationSize int `json:"migrationSize"`
-		IslandCountTarget int `json:"islandCountTarget"`
-		IslandCountActual int `json:"islandCountActual"`
-		MigrationFrequency int `json:"migrationFrequency"`
-		MemoryGB float32 `json:"memoryGB"`
-		Running bool `json:"running"`
+		ProblemID          string  `json:"problemID"`
+		MigrationSize      int     `json:"migrationSize"`
+		IslandCountTarget  int     `json:"islandCountTarget"`
+		IslandCountActual  int     `json:"islandCountActual"`
+		MigrationFrequency int     `json:"migrationFrequency"`
+		MemoryGB           float32 `json:"memoryGB"`
+		Running            bool    `json:"running"`
 	}
 
 	var problem types.Problem
@@ -181,6 +181,8 @@ func (va *VolpeAPI) GetProblem(c *gin.Context) {
 }
 
 func (va *VolpeAPI) GetWorkers(c *gin.Context) {
+	workers := va.sched.GetWorkers()
+	c.JSON(200, workers)
 }
 
 func (va *VolpeAPI) StartProblem(c *gin.Context) {
@@ -238,7 +240,7 @@ func (va *VolpeAPI) distributeResults() {
 	}
 }
 
-func (va *VolpeAPI) StreamResults (c *gin.Context) {
+func (va *VolpeAPI) StreamResults(c *gin.Context) {
 
 	log.Info().Msg("streaming results")
 
@@ -260,7 +262,7 @@ func (va *VolpeAPI) StreamResults (c *gin.Context) {
 	defer va.contman.RemoveResultListener(problemID, channel)
 
 	for {
-		pop, ok := <- channel
+		pop, ok := <-channel
 		if !ok {
 			log.Warn().Caller().Msgf("result stream for %s closed", problemID)
 			break
@@ -271,7 +273,7 @@ func (va *VolpeAPI) StreamResults (c *gin.Context) {
 		for i, ind := range pop.Members {
 			resultPop.Population[i] = Individual{
 				Genotype: ind.GetRepresentation(),
-				Fitness: ind.GetFitness(),
+				Fitness:  ind.GetFitness(),
 			}
 		}
 		c.Writer.WriteString("data: ")
@@ -283,8 +285,8 @@ func (va *VolpeAPI) StreamResults (c *gin.Context) {
 		}
 		c.Writer.WriteString("\n\n")
 		c.Writer.Flush()
-	
-		time.Sleep(5*time.Second)
+
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -318,7 +320,7 @@ func (va *VolpeAPI) EventStream(c *gin.Context) {
 	}()
 
 	for {
-		event, ok := <- channel
+		event, ok := <-channel
 		if !ok {
 			log.Info().Msgf("EventStream channel closed, ending request")
 			return
