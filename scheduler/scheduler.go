@@ -12,6 +12,7 @@ type Scheduler interface {
 	RemoveWorker(name string)                           // remove an existing worker, update population
 	UpdateMetrics(metrics *pcomms.DeviceMetricsMessage) // update the metrics and objective function
 	GetWorkers() []Worker
+	GetWorkerCount() int
 	AddProblem(problem types.Problem)
 	RemoveProblem(name string)
 	GetInstanceCount(problemID string) int

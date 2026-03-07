@@ -200,7 +200,7 @@ func adjInstHandler(wc *pcomms.WorkerComms, adjInstChan chan *pcomms.AdjustInsta
 			return
 		}
 		problemID := adjInst.GetProblemID()
-		log.Debug().Msgf("got adj inst msg for problem %s, instances %d")
+		log.Debug().Msgf("got adj inst msg for problem %s, instances %d", problemID, adjInst.GetInstances())
 
 		_, ok = probStore.GetFileName(problemID)
 		if !ok {

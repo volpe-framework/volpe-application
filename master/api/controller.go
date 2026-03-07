@@ -185,6 +185,10 @@ func (va *VolpeAPI) GetWorkers(c *gin.Context) {
 	c.JSON(200, workers)
 }
 
+func (va *VolpeAPI) GetWorkerCount(c *gin.Context) {
+	c.JSON(200, map[string]any{"count": va.sched.GetWorkerCount()})
+}
+
 func (va *VolpeAPI) StartProblem(c *gin.Context) {
 	problemID := c.Param("id")
 	if len(problemID) == 0 {

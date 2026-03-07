@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
 func RunAPI(port int, api *VolpeAPI) {
 	r := gin.Default()
 
@@ -22,6 +21,7 @@ func RunAPI(port int, api *VolpeAPI) {
 	r.GET("/problems/:id", api.GetProblem)
 	r.Any("/problems/:id/abort", api.AbortProblem)
 	r.GET("/workers", api.GetWorkers)
+	r.GET("/workerCount", api.GetWorkerCount)
 
 	r.GET("/eventStream", api.EventStream)
 

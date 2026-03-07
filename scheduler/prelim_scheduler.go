@@ -119,9 +119,9 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 				continue
 			}
 			for _, p := range ss.problems {
-				pMem := max(0.5, p.MemoryUsage)
-				if pMem == 0.5 {
-					log.Warn().Msgf("Invalid memory %f GB for problem %s", p.MemoryUsage, p.ProblemID)
+				pMem := p.MemoryUsage
+				if pMem <= 0.5 {
+					log.Warn().Msgf("Low memory allocation %f GB for problem %s", p.MemoryUsage, p.ProblemID)
 				}
 				if remainingMem >= pMem {
 					newVal := sched.Get(w.WorkerID, p.ProblemID) + 1
@@ -172,6 +172,12 @@ func (ss *PrelimScheduler) GetWorkers() []Worker {
 		}
 	}
 	return workers
+}
+
+func (ss *PrelimScheduler) GetWorkerCount() int {
+	ss.mut.Lock()
+	defer ss.mut.Unlock()
+	return len(ss.workers)
 }
 
 func (ss *PrelimScheduler) RemoveProblem(problemID string) {
