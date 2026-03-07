@@ -101,6 +101,10 @@ func (pc *ProblemContainer) RegisterResultChannel(channel chan *ccomms.ResultPop
 
 // removes channel from resultChannels
 func (pc *ProblemContainer) DeRegisterResultChannel(channel chan *ccomms.ResultPopulation) {
+	if pc == nil {
+		log.Warn().Msgf("ProblemContainer was nil in DeRegisterResultChannel")
+		return
+	}
 	pc.rcMut.Lock()
 	defer pc.rcMut.Unlock()
 

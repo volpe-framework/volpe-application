@@ -26,6 +26,18 @@ func (ps *ProblemStore) NewProblem(p types.Problem) {
 	ps.problems[p.ProblemID] = &problem
 }
 
+func (ps *ProblemStore) ListProblems() []string {
+	ps.mut.Lock()
+	defer ps.mut.Unlock()
+	result := make([]string, len(ps.problems))
+	i := 0
+	for pblm := range(ps.problems) {
+		result[i] = pblm
+		i += 1
+	}
+	return result
+}
+
 func (ps *ProblemStore) RegisterImage(id string, fname string) error {
 	ps.mut.Lock()
 	defer ps.mut.Unlock()
