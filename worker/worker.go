@@ -14,7 +14,8 @@ import (
 	"volpe-framework/model"
 	"volpe-framework/types"
 
-	loadstat "github.com/mackerelio/go-osstat/loadavg"
+	cpustat "github.com/mackerelio/go-osstat/cpu"
+
 	memorystat "github.com/mackerelio/go-osstat/memory"
 	networkstat "github.com/mackerelio/go-osstat/network"
 	"github.com/rs/zerolog"
@@ -151,35 +152,35 @@ func immigrationHandler(cm *contman.ContainerManager, immigChan chan *volpe.Migr
 // }
 
 func deviceMetricsExporter(ctx context.Context, wc *pcomms.WorkerComms) {
-	memStats, err := memorystat.Get()
-	memGB := float32(0)
-	if err != nil {
-		log.Err(err).Msgf("Failed fetching memory stats")
-	} else {
-		memGB = float32(memStats.Used) / (1024 * 1024 * 1024)
-	}
-
-	loadStats, err := loadstat.Get()
-	cpuPerc := float32(0)
-	if err != nil {
-		log.Err(err).Msgf("Failed to fetch CPU stats")
-	} else {
-		cpuPerc = float32(loadStats.Loadavg5)
-	}
-
-	netTxBytes := uint32(0)
-	netRxBytes := uint32(0)
-	netStats, err := networkstat.Get()
-	if err != nil {
-		log.Err(err).Msgf("Failed to fetch network stats")
-	} else {
-		for _, netStat := range netStats {
-			netRxBytes += uint32(netStat.RxBytes)
-			netTxBytes += uint32(netStat.TxBytes)
-		}
-	}
-
 	for ctx.Err() == nil {
+		memStats, err := memorystat.Get()
+		memGB := float32(0)
+		if err != nil {
+			log.Err(err).Msgf("Failed fetching memory stats")
+		} else {
+			memGB = float32(memStats.Used) / (1024 * 1024 * 1024)
+		}
+
+		loadStats, err := cpustat.Get()
+		cpuPerc := float32(0)
+		if err != nil {
+			log.Err(err).Msgf("Failed to fetch CPU stats")
+		} else {
+			cpuPerc = 1.0 - float32(loadStats.Idle)/float32(loadStats.Total)
+		}
+
+		netTxBytes := uint32(0)
+		netRxBytes := uint32(0)
+		netStats, err := networkstat.Get()
+		if err != nil {
+			log.Err(err).Msgf("Failed to fetch network stats")
+		} else {
+			for _, netStat := range netStats {
+				netRxBytes += uint32(netStat.RxBytes)
+				netTxBytes += uint32(netStat.TxBytes)
+			}
+		}
+
 		wc.SendDeviceMetrics(&pcomms.DeviceMetricsMessage{
 			CpuUtilPerc: cpuPerc,
 			MemUsageGB:  memGB,

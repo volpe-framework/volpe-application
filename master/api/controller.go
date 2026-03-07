@@ -173,7 +173,7 @@ func (va *VolpeAPI) GetProblem(c *gin.Context) {
 	problemData.MigrationFrequency = int(problem.MigrationFrequency)
 	problemData.MigrationSize = int(problem.MigrationSize)
 	problemData.IslandCountTarget = int(problem.IslandCount)
-	problemData.IslandCountActual = 0 // API TODO: how to get actual count?
+	problemData.IslandCountActual = va.sched.GetInstanceCount(problem.ProblemID)
 	problemData.Running = va.contman.HasProblem(problemID)
 	problemData.MemoryGB = problem.MemoryUsage
 

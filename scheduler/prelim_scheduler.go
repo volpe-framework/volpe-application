@@ -11,16 +11,18 @@ import (
 )
 
 type PrelimScheduler struct {
-	problems   []types.Problem
-	workers    map[string]*Worker
-	removeList []string
-	mut        sync.Mutex
+	problems       []types.Problem
+	workers        map[string]*Worker
+	removeList     []string
+	instanceCounts map[string]int
+	mut            sync.Mutex
 }
 
 func NewPrelimScheduler() (*PrelimScheduler, error) {
 	sched := &PrelimScheduler{}
 	sched.problems = make([]types.Problem, 0)
 	sched.workers = make(map[string]*Worker)
+	sched.instanceCounts = make(map[string]int)
 	return sched, nil
 }
 
@@ -72,6 +74,10 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 		}
 	})
 
+	for _, p := range ss.problems {
+		ss.instanceCounts[p.ProblemID] = 0
+	}
+
 	workers := make([]types.Worker, len(ss.workers))
 	i := 0
 	for _, worker := range ss.workers {
@@ -121,6 +127,7 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 					newVal := sched.Get(w.WorkerID, p.ProblemID) + 1
 					sched.Set(w.WorkerID, p.ProblemID, newVal)
 					ss.workers[w.WorkerID].Schedule[p.ProblemID] = int(newVal)
+					ss.instanceCounts[p.ProblemID] += 1
 					remainingMem -= pMem
 					changeCount += 1
 					// log.Info().Msgf("Added problem %s to worker %s", p.ProblemID, w.WorkerID)
@@ -174,13 +181,22 @@ func (ss *PrelimScheduler) RemoveProblem(problemID string) {
 	if index == -1 {
 		return
 	}
+	delete(ss.instanceCounts, problemID)
 	ss.problems = slices.Delete(ss.problems, index, index+1)
 	ss.removeList = append(ss.removeList, problemID)
+}
+
+func (ss *PrelimScheduler) GetInstanceCount(problemID string) int {
+	ss.mut.Lock()
+	defer ss.mut.Unlock()
+	return ss.instanceCounts[problemID]
 }
 
 func (ss *PrelimScheduler) AddProblem(problem types.Problem) {
 	ss.mut.Lock()
 	defer ss.mut.Unlock()
+
+	ss.instanceCounts[problem.ProblemID] = 0
 
 	if slices.Contains(ss.problems, problem) {
 		return

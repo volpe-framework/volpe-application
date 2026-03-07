@@ -14,6 +14,7 @@ type Scheduler interface {
 	GetWorkers() []Worker
 	AddProblem(problem types.Problem)
 	RemoveProblem(name string)
+	GetInstanceCount(problemID string) int
 }
 
 type Worker struct {
