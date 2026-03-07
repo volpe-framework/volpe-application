@@ -408,7 +408,9 @@ func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan 
 		log.Error().Msgf("no containers for problemID %s, can't de-register result listener", problemID)
 		return &UnknownProblemError{ProblemID: problemID}
 	}
-	problem.problemContainers[0].DeRegisterResultChannel(channel)
+	for _, cont := range(problem.problemContainers) {
+		cont.DeRegisterResultChannel(channel)
+	}
 	close(channel)
 	return nil
 }

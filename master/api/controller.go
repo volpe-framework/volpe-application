@@ -146,6 +146,43 @@ func (va *VolpeAPI) DeleteProblem(c *gin.Context) {
 	}
 }
 
+func (va *VolpeAPI) GetProblem(c *gin.Context) {
+	problemID := c.Param("id")
+	if len(problemID) == 0 {
+		c.AbortWithStatusJSON(400, "missing path param ID")
+		return
+	}
+
+	var problemData struct {
+		ProblemID string `json:"problemID"`
+		MigrationSize int `json:"migrationSize"`
+		IslandCountTarget int `json:"islandCountTarget"`
+		IslandCountActual int `json:"islandCountActual"`
+		MigrationFrequency int `json:"migrationFrequency"`
+		MemoryGB float32 `json:"memoryGB"`
+		Running bool `json:"running"`
+	}
+
+	var problem types.Problem
+	if va.probstore.GetMetadata(problemID, &problem) == nil {
+		log.Err(&contman.UnknownProblemError{ProblemID: problemID}).Msg("")
+		c.Status(404)
+	}
+
+	problemData.ProblemID = problem.ProblemID
+	problemData.MigrationFrequency = int(problem.MigrationFrequency)
+	problemData.MigrationSize = int(problem.MigrationSize)
+	problemData.IslandCountTarget = int(problem.IslandCount)
+	problemData.IslandCountActual = 0 // API TODO: how to get actual count?
+	problemData.Running = va.contman.HasProblem(problemID)
+	problemData.MemoryGB = problem.MemoryUsage
+
+	c.JSON(200, problemData)
+}
+
+func (va *VolpeAPI) GetWorkers(c *gin.Context) {
+}
+
 func (va *VolpeAPI) StartProblem(c *gin.Context) {
 	problemID := c.Param("id")
 	if len(problemID) == 0 {

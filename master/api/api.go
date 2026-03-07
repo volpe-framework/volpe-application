@@ -13,13 +13,17 @@ func RunAPI(port int, api *VolpeAPI) {
 
 	r.Use(cors.Default())
 
-	r.POST("/problems/:id", api.RegisterProblem)
+	r.GET("/problems", api.ListProblems)
+
 	r.DELETE("/problems/:id", api.DeleteProblem)
 	r.GET("/problems/:id/results", api.StreamResults)
+	r.POST("/problems/:id", api.RegisterProblem)
 	r.PUT("/problems/:id/start", api.StartProblem)
+	r.GET("/problems/:id", api.GetProblem)
 	r.Any("/problems/:id/abort", api.AbortProblem)
+	r.GET("/workers", api.GetWorkers)
+
 	r.GET("/eventStream", api.EventStream)
-	r.GET("/problems", api.ListProblems)
 
 	r.Static("/static", "public/")
 
