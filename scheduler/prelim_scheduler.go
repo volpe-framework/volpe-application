@@ -86,6 +86,7 @@ func (ss *PrelimScheduler) FillSchedule(sched Schedule) error {
 			CpuCount: int32(worker.CpuCount),
 			MemoryGB: worker.MemoryGB,
 		}
+		i += 1
 	}
 
 	slices.SortFunc(workers, func(w1 types.Worker, w2 types.Worker) int {
@@ -170,6 +171,7 @@ func (ss *PrelimScheduler) GetWorkers() []Worker {
 			CpuUtilPerc:   worker.CpuUtilPerc,
 			MemoryUsageGB: worker.MemoryUsageGB,
 		}
+		i += 1
 	}
 	return workers
 }
