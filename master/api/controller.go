@@ -1,4 +1,4 @@
-package api
+package appackage api
 
 import (
 	"io"
@@ -29,6 +29,7 @@ type VolpeAPI struct {
 	eventOutChannels map[chan string]bool
 }
 
+// NewVolpeAPI initializes volpe api and starts result distribution
 func NewVolpeAPI(ps *model.ProblemStore, sched scheduler.Scheduler, contman *contman.ContainerManager, eventStream chan string) (*VolpeAPI, error) {
 	api := &VolpeAPI{
 		probstore:        ps,
@@ -41,6 +42,7 @@ func NewVolpeAPI(ps *model.ProblemStore, sched scheduler.Scheduler, contman *con
 	return api, nil
 }
 
+// RegisterProblem parses multipart form to register new problem and save its image
 func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 	problemID := c.Param("id")
 	if problemID == "" {
@@ -120,6 +122,7 @@ func (va *VolpeAPI) RegisterProblem(c *gin.Context) {
 	log.Info().Caller().Msgf("registered image %s", problemID)
 }
 
+// ListProblems returns list of all problems and their running status
 func (va *VolpeAPI) ListProblems(c *gin.Context) {
 	type Problem struct {
 		ProblemID string `json:"problemID"`
@@ -135,6 +138,7 @@ func (va *VolpeAPI) ListProblems(c *gin.Context) {
 	c.JSON(200, map[string]any{"problems": problems})
 }
 
+// DeleteProblem removes problem from container manager and scheduler
 func (va *VolpeAPI) DeleteProblem(c *gin.Context) {
 	problemID := c.Param("id")
 
@@ -146,6 +150,7 @@ func (va *VolpeAPI) DeleteProblem(c *gin.Context) {
 	}
 }
 
+// GetProblem fetches and returns detailed metadata for a specific problem
 func (va *VolpeAPI) GetProblem(c *gin.Context) {
 	problemID := c.Param("id")
 	if len(problemID) == 0 {
@@ -180,15 +185,18 @@ func (va *VolpeAPI) GetProblem(c *gin.Context) {
 	c.JSON(200, problemData)
 }
 
+// GetWorkers returns list of active workers from the scheduler
 func (va *VolpeAPI) GetWorkers(c *gin.Context) {
 	workers := va.sched.GetWorkers()
 	c.JSON(200, workers)
 }
 
+// GetWorkerCount returns total count of registered workers
 func (va *VolpeAPI) GetWorkerCount(c *gin.Context) {
 	c.JSON(200, map[string]any{"count": va.sched.GetWorkerCount()})
 }
 
+// StartProblem signals scheduler and container manager to begin running a problem
 func (va *VolpeAPI) StartProblem(c *gin.Context) {
 	problemID := c.Param("id")
 	if len(problemID) == 0 {
@@ -231,6 +239,7 @@ func (va *VolpeAPI) StartProblem(c *gin.Context) {
 	}
 }
 
+// distributeResults forwards events from the internal stream to all registered output channels
 func (va *VolpeAPI) distributeResults() {
 	for {
 		// event, ok := <- va.eventStream
@@ -244,6 +253,7 @@ func (va *VolpeAPI) distributeResults() {
 	}
 }
 
+// StreamResults establishes sse connection to stream population results for a problem
 func (va *VolpeAPI) StreamResults(c *gin.Context) {
 
 	log.Info().Msg("streaming results")
@@ -294,6 +304,7 @@ func (va *VolpeAPI) StreamResults(c *gin.Context) {
 	}
 }
 
+// AbortProblem stops execution of a problem across the framework
 func (va *VolpeAPI) AbortProblem(c *gin.Context) {
 	problemID := c.Param("id")
 
@@ -308,6 +319,7 @@ func (va *VolpeAPI) AbortProblem(c *gin.Context) {
 	c.Status(200)
 }
 
+// EventStream establishes sse connection for general framework event notifications
 func (va *VolpeAPI) EventStream(c *gin.Context) {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
