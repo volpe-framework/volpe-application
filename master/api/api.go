@@ -25,7 +25,5 @@ func RunAPI(port int, api *VolpeAPI) {
 
 	r.GET("/eventStream", api.EventStream)
 
-	r.Static("/static", "public/")
-
 	go r.Run(fmt.Sprintf("0.0.0.0:%d", port))
 }
