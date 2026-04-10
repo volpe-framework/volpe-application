@@ -18,7 +18,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-
 type UnknownProblemError struct {
 	ProblemID string
 }
@@ -30,21 +29,21 @@ func (e *UnknownProblemError) Error() string {
 // Manages an entire set of problem containers
 // TODO: testing for this module
 type ContainerManager struct {
-	problemContainers 	map[string]*cmProblem // map from problemID to list of containers
-	pcMut             	sync.Mutex
+	problemContainers map[string]*cmProblem // map from problemID to list of containers
+	pcMut             sync.Mutex
 	// meter             	otelmetric.Meter
-	ctx					context.Context
-	cancelFunc 			context.CancelFunc
-	worker 				bool
-	emigChan			chan *volpe.MigrationMessage
-	problemStore		*model.ProblemStore
+	ctx          context.Context
+	cancelFunc   context.CancelFunc
+	worker       bool
+	emigChan     chan *volpe.MigrationMessage
+	problemStore *model.ProblemStore
 }
 
 // stores all the information related to an individual problem
 type cmProblem struct {
-	problemContainers 	map[int32]*ProblemContainer
-	problemContext 		context.Context
-	problemCancel 		context.CancelFunc
+	problemContainers map[int32]*ProblemContainer
+	problemContext    context.Context
+	problemCancel     context.CancelFunc
 }
 
 // constructor for a new container manager
@@ -88,7 +87,7 @@ func (cm *ContainerManager) hasProblem(problemID string) bool {
 // func (cm *ContainerManager) GetProblemIDFromContainerName(containerName string) (string, bool) {
 // 	cm.lockMut()
 // 	defer cm.unlockMut()
-// 
+//
 // 	val, ok := cm.containers[containerName]
 // 	return val, ok
 // }
@@ -156,9 +155,9 @@ func (cm *ContainerManager) UntrackProblem(problemID string) error {
 // func (cm *ContainerManager) GetSubpopulations(perContainer int) ([]*common.Population, error) {
 // 	cm.lockMut()
 // 	defer cm.unlockMut()
-// 
+//
 // 	pops := make([]*common.Population, len(cm.problemContainers))
-// 
+//
 // 	i := 0
 // 	for pid, problem := range cm.problemContainers {
 // 		population := common.Population{}
@@ -170,9 +169,9 @@ func (cm *ContainerManager) UntrackProblem(problemID string) error {
 // 				log.Error().Caller().Msgf("error fetching subpop on %s: %s", pid, err.Error())
 // 				return nil, err
 // 			}
-// 
+//
 // 			members := tmp.GetMembers()
-// 
+//
 // 			// TODO: config for this additional logging
 // 			// if cm.worker {
 // 			// 	bestFitness := members[0].GetFitness()
@@ -198,7 +197,7 @@ func (cm *ContainerManager) UntrackProblem(problemID string) error {
 // 			// 		f.Close()
 // 			// 	}
 // 			// }
-// 
+//
 // 			population.Members = slices.Grow(population.Members, len(members))
 // 			for _, memb := range members {
 // 				population.Members = append(population.Members, memb)
@@ -213,7 +212,7 @@ func (cm *ContainerManager) UntrackProblem(problemID string) error {
 // func (cm *ContainerManager) GetRandomSubpopulation(problemID string, perContainer int) (*common.Population, error) {
 // 	cm.lockMut()
 // 	defer cm.unlockMut()
-// 
+//
 // 	problem, ok := cm.problemContainers[problemID]
 // 	if !ok {
 // 		log.Error().Caller().Msgf("unknown problemID %s", problemID)
@@ -221,7 +220,7 @@ func (cm *ContainerManager) UntrackProblem(problemID string) error {
 // 	}
 // 	population := new(common.Population)
 // 	population.ProblemID = &problemID
-// 
+//
 // 	for _, container := range(problem.problemContainers) {
 // 		subpop, err := container.GetRandomSubpopulation(perContainer)
 // 		if err != nil {
@@ -267,7 +266,7 @@ func (cm *ContainerManager) IncorporatePopulation(mig *volpe.MigrationMessage) e
 		if int(containerID) >= len(problem.problemContainers) {
 			log.Warn().Msgf("containerID %d invalid for problemID %s (has %d), sending to random container", containerID, pop.GetProblemID(), len(problem.problemContainers))
 			id := int32(0)
-			for key := range(problem.problemContainers) {
+			for key := range problem.problemContainers {
 				id = key
 				break
 			}
@@ -283,13 +282,13 @@ func (cm *ContainerManager) IncorporatePopulation(mig *volpe.MigrationMessage) e
 		}
 	} else {
 		id := int32(0)
-		for key := range(problem.problemContainers) {
+		for key := range problem.problemContainers {
 			id = key
 			break
 		}
 
 		log.Debug().Caller().Msgf("called incPopToPC")
-		err :=  cm.incPopToPC(pop, problem.problemContainers[id])
+		err := cm.incPopToPC(pop, problem.problemContainers[id])
 		if err != nil {
 			return err
 		}
@@ -302,8 +301,8 @@ func (cm *ContainerManager) IncorporatePopulation(mig *volpe.MigrationMessage) e
 		log.Debug().Caller().Msgf("got random subpop")
 		// send an emigration msg to the same container
 		migMsg := volpe.MigrationMessage{
-			Population: newPop,
-			WorkerID: mig.GetWorkerID(),
+			Population:  newPop,
+			WorkerID:    mig.GetWorkerID(),
 			ContainerID: mig.GetContainerID(),
 		}
 		log.Debug().Caller().Msgf("pushing to emigChan")
@@ -336,7 +335,7 @@ func (cm *ContainerManager) adjustInstances(problemID string, instances int) err
 		log.Info().Msgf("Decreasing instance count for problem %s to %d", problemID, instances)
 		removedCount := 0
 		toRemove := len(containers) - instances
-		for key, pc := range(problem.problemContainers) {
+		for key, pc := range problem.problemContainers {
 			if removedCount >= toRemove {
 				break
 			}
@@ -388,7 +387,7 @@ func (cm *ContainerManager) RegisterResultListener(problemID string, channel cha
 		return &UnknownProblemError{ProblemID: problemID}
 
 	}
-	for _, pc := range(problem.problemContainers) {
+	for _, pc := range problem.problemContainers {
 		pc.RegisterResultChannel(channel)
 		break
 	}
@@ -408,7 +407,7 @@ func (cm *ContainerManager) RemoveResultListener(problemID string, channel chan 
 		log.Error().Msgf("no containers for problemID %s, can't de-register result listener", problemID)
 		return &UnknownProblemError{ProblemID: problemID}
 	}
-	for _, cont := range(problem.problemContainers) {
+	for _, cont := range problem.problemContainers {
 		cont.DeRegisterResultChannel(channel)
 	}
 	close(channel)
