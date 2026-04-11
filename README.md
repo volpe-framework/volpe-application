@@ -29,6 +29,28 @@ export VOLPE_MASTER=192.168.0.2:8080
 ```
 2. `cd` into the `worker/` folder and run `go run .`
 
+## Worker Configuration
+
+The worker requires a `.ini` config file at startup. Create it at any path and pass it via the `-config-path` flag:
+
+```
+go run . -config-path ./config.ini
+```
+
+The config file format is:
+
+```ini
+[general]
+volpe_master=<master_ip>:8080
+worker_id=<unique_worker_name>
+
+[resources]
+memory_gb=2.0
+cpu_count=2
+```
+
+If `volpe_master` is omitted from the config, the worker will fall back to the `VOLPE_MASTER` environment variable.
+
 ### Steps to Fix (WSL)
 
 To change the firewall configs in WSL do
